@@ -383,7 +383,7 @@ function inputs(){let up=K.ArrowUp||K.KeyW,dn=K.ArrowDown||K.KeyS,lt=K.ArrowLeft
   if(AUTO)return autoDrive();return{up:typeof up==='number'?up:+!!up,dn:!!dn,hb:!!hb,ax}}
 function step(dt,inp){
   const fx=Math.sin(C.H),fz=-Math.cos(C.H),rx=Math.cos(C.H),rz=Math.sin(C.H);let vf=C.vx*fx+C.vz*fz,vr=C.vx*rx+C.vz*rz;
-  track();const i=C.idx,alat=Math.abs(C.lat),hw=HWA[i];let mu=SURF[SFA[i]].mu;const off=alat>hw+.4;if(off)mu*=.74;
+  track();const i=C.idx,alat=Math.abs(C.lat),hw=HWA[i];let mu=SURF[SFA[i]].mu;const off=alat>hw+.4;if(off)mu*=.88;
   C.thr+=(inp.up-C.thr)*Math.min(1,dt*10);C.brk=inp.dn?1:0;C.hb=inp.hb?1:0;const hb=inp.hb;
   const ms=steerLim(vf),tgt=inp.ax*ms;C.steer+=(tgt-C.steer)*Math.min(1,dt*(tgt?4.5:9));
   if(C.air){C.vx*=1-.05*dt;C.vz*=1-.05*dt;C.x+=C.vx*dt;C.z+=C.vz*dt;C.H+=C.w*dt;C.w*=1-.5*dt}
@@ -398,9 +398,10 @@ function step(dt,inp){
     C.vx+=(Flong*fx+Flat*rx)/M*dt;C.vz+=(Flong*fz+Flat*rz)/M*dt;C.w+=(A*Fyf*Math.cos(C.steer)-B*Fyr)/IZ*dt;if(Math.abs(vf)<1)C.w*=.9;
     C.x+=C.vx*dt;C.z+=C.vz*dt;C.H+=C.w*dt}
   // outer limit (spectator line)
-  const LIM=hw+5.5;track();const alat2=Math.abs(C.lat);
+  const LIM=hw+1.5;track();const alat2=Math.abs(C.lat);
+  if(alat2>LIM-.05){const th0=Math.atan2(TX[C.idx],-TZ[C.idx]);C.H+=wrapA(th0-C.H)*.06}
   if(alat2>LIM){const side=Math.sign(C.lat),nx=-TZ[C.idx]*side,nz=TX[C.idx]*side,p2=alat2-LIM;C.x-=nx*p2;C.z-=nz*p2;const vn=C.vx*nx+C.vz*nz;
-    if(vn>0){C.vx-=nx*vn*1.3;C.vz-=nz*vn*1.3;C.vx*=.9;C.vz*=.9;C.w*=.8;if(vn>4&&performance.now()-slideT>600){slideT=performance.now();flash('CRASH!',500,'r');if(ac)beep(90,.12,.15)}}}
+    if(vn>0){C.vx-=nx*vn*1.65;C.vz-=nz*vn*1.65;C.vx*=.985;C.vz*=.985;{const th=Math.atan2(TX[C.idx],-TZ[C.idx]);C.H+=wrapA(th-C.H)*Math.min(.5,.08+vn*.04)}C.w*=.3;if(vn>4&&performance.now()-slideT>600){slideT=performance.now();flash('CRASH!',500,'r');if(ac)beep(90,.12,.15)}}}
   const gy=groundY(C.s),imp=vert(C,gy,dt,16);if(imp>6){const f=clamp(1-(imp-6)*.012,.85,1);C.vx*=f;C.vz*=f;if(imp>9)flash('HARD LANDING',500,'r')}
   C.vf=vf;C.vr=vr}
 
