@@ -12,6 +12,10 @@ Open `index.html` through any static web server (for example `python3 -m http.se
 
 Run the tools from inside `data/`, for example `cd data && python3 ../tools/elev.py eudem25m`. The scripts need network access to the public APIs below.
 
+## Cars
+
+Five period Group A / WRC-style cars, each with its own body shape, colours and handling: Subaru Impreza 555, Lancia Delta Integrale Evo 2, Ford Escort Cosworth, Mitsubishi Lancer Evolution III and Toyota Celica GT-Four ST205. They are simple low-poly models with plain team colours and no sponsor logos or wordmarks. Handling differences are tuned by feel, not from measured data.
+
 ## Controls
 
 Up/W throttle, Down/S brake and reverse, Left/Right or A/D steer, Space handbrake, C camera, V voice, R back on the road (+5 s). Gamepad: stick, triggers, A for handbrake.
