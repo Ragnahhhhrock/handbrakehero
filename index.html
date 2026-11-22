@@ -380,7 +380,18 @@ function audioStart(){if(ac||!sound)return;try{ac=new(window.AudioContext||windo
   osc1.connect(filt);const g2=ac.createGain();g2.gain.value=.5;osc2.connect(g2);g2.connect(filt);filt.connect(gainN);gainN.connect(ac.destination);osc1.start();osc2.start();
   const b=ac.createBuffer(1,ac.sampleRate,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const ns=ac.createBufferSource();ns.buffer=b;ns.loop=true;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1500;nGain=ac.createGain();nGain.gain.value=0;ns.connect(bp);bp.connect(nGain);nGain.connect(ac.destination);ns.start()}catch(e){ac=null}}
 function beep(f,d,v){if(!ac)return;const o=ac.createOscillator(),gg=ac.createGain();o.type='square';o.frequency.value=f;gg.gain.value=v||.08;o.connect(gg);gg.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}
-document.addEventListener('visibilitychange',()=>{if(!ac)return;try{document.hidden?ac.suspend():ac.resume()}catch(e){}});
+// mobile audio unlock: phones only start Web Audio inside a touch, and the iOS silent switch mutes it unless a media element is playing
+const MOBILE=COARSE||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let silentEl=null;
+function silentWav(){const n=4000,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);for(let i=0;i<n;i++)v.setUint8(44+i,128);return URL.createObjectURL(new Blob([b],{type:'audio/wav'}))}
+function unlockAudio(){if(!sound||document.hidden)return;
+  if(MOBILE){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+    try{if(!silentEl){silentEl=new Audio(silentWav());silentEl.loop=true;silentEl.setAttribute('playsinline','')}if(silentEl.paused){const p=silentEl.play();if(p&&p.catch)p.catch(()=>{})}}catch(e){}}
+  audioStart();if(!ac)return;
+  if(ac.state!=='running'){try{const p=ac.resume();if(p&&p.catch)p.catch(()=>{})}catch(e){}}
+  if(!unlockAudio.done){try{const s=ac.createBufferSource();s.buffer=ac.createBuffer(1,1,22050);s.connect(ac.destination);s.start(0);unlockAudio.done=1}catch(e){}}}
+['touchstart','touchend','pointerdown','click','keydown'].forEach(t=>addEventListener(t,unlockAudio,{capture:true,passive:true}));
+document.addEventListener('visibilitychange',()=>{try{if(document.hidden){if(silentEl)silentEl.pause();if(ac)ac.suspend()}else if(ac)ac.resume()}catch(e){}});
 
 // ================= player physics =================
 let M=1230,IZ=1900,A=1.25,B=1.3,CF=90000,CR=95000,PWR=215000,FMAX=9500,MS=.6;
