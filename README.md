@@ -15,6 +15,15 @@ The start card has a **Tutorial** button: five practice hairpins with an on-scre
 ## Controls
 Arrows/WASD steer and throttle, **Space** handbrake, C camera, I isometric view, V voice, R back on the road (+4 s), Esc menu. Gamepad: stick, triggers, A handbrake.
 
+## Mobile first
+The game is designed for phones, portrait or landscape. Touch layout switches on automatically.
+- Drag anywhere on the left side to steer (analog, relative to where your thumb lands). Big **HB** handbrake button bottom right, **BRAKE** beside it.
+- **Auto throttle** is on by default on touch (you steer, brake and handbrake); turn it off in the menu for a manual GAS button.
+- ☰ menu (tap twice to quit a run), ◉ camera, ⟲ back on road (+4 s).
+- Wider field of view and a higher, further-back chase camera in portrait; safe-area insets for notches; pixel ratio capped at 1.5 and lowered automatically if the frame rate drops.
+- Vibration on wall hits and perfect turns (Android Chrome; iOS Safari has no vibration API).
+- `manifest.webmanifest` and icons: add to home screen for full-screen play.
+
 ## Cars
 Five period cars (Impreza 555, Delta Integrale Evo 2, Escort Cosworth, Lancer Evo III, Celica ST205), modelled in Blender by `models/build_cars.py` (writes `models/cars.blend`, a `.glb` per car, and `cars.json` for the game).
 

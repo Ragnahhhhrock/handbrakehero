@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Endless Hairpins</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&display=swap" rel="stylesheet">
@@ -49,8 +55,6 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--red)}
 .keys{font-size:15px;opacity:.75;margin-top:12px;line-height:1.5}
 table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding:4px 0;border-bottom:1px solid #fff2}td:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 #load{position:fixed;inset:0;display:grid;place-items:center;font-size:24px;z-index:9;background:var(--night)}
-#touch{position:fixed;inset:auto 0 0 0;height:0;z-index:3;display:none}
-#touch button{position:fixed;bottom:90px;width:72px;height:72px;border-radius:50%;background:#0b122088;font-size:16px;touch-action:none}
 @media(max-width:600px){#map{width:96px;height:96px}#prof{display:none}#credit{bottom:12px}#tl .t{font-size:30px}#note .now{font-size:24px;min-width:140px}#spd .v{font-size:44px}#note{top:84px}}
 #msg.perfect{color:#ffd400}#msg.warn{color:#ff6b6b}#msg{white-space:nowrap}
 #last{font-size:15px;opacity:.9;margin-top:2px}
@@ -64,6 +68,53 @@ table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding
 #coach .chips i.on.hb{background:#ffd400}
 #hbI{display:inline-block;background:#ffd400;color:#0b1220;font-weight:800;font-size:18px;padding:0 8px;margin-right:8px;vertical-align:top;opacity:.18;text-shadow:none}
 #tl .s{max-width:60vw}
+
+/* ---------- mobile first ---------- */
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+canvas#gl{touch-action:none}
+button{touch-action:manipulation}
+.card{display:flex;touch-action:pan-y;overscroll-behavior:contain;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.card .in{margin:auto}
+.sticky{position:sticky;bottom:0;background:linear-gradient(#0b122000,#0b1220 28%);padding:14px 0 4px;margin:0}
+.tonly{display:none}body.touch .tonly{display:flex}body.touch .konly{display:none}
+#touch{position:fixed;inset:0;z-index:3;display:none;pointer-events:none}
+body.touch.playing #touch{display:block}
+#touch>*{pointer-events:auto}
+#steer{position:absolute;left:0;bottom:0;width:54%;height:50%;touch-action:none}
+#ring{position:absolute;left:max(26px,env(safe-area-inset-left));bottom:max(26px,env(safe-area-inset-bottom));width:150px;height:64px;border-radius:32px;border:3px solid #fff5;background:#0b122066;display:grid;place-items:center;pointer-events:none}
+#ring b{position:absolute;font-size:12px;letter-spacing:.08em;opacity:.55;top:-22px;white-space:nowrap}
+#knob{width:52px;height:52px;border-radius:50%;background:#fffd;box-shadow:0 2px 8px #0008}
+#touch button{position:absolute;border-radius:50%;border:3px solid #fff8;background:#0b1220a8;color:#fff;font-weight:800;padding:0;min-height:0;touch-action:none;letter-spacing:.04em}
+#touch button.on{background:#d7192add;border-color:#fff;transform:scale(.94)}
+#tH{width:104px;height:104px;right:max(14px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));background:#ffd400d0;color:#0b1220;border-color:#fff;font-size:24px}
+#tH.on{background:#fff;color:#0b1220}
+#tB{width:84px;height:84px;right:calc(max(14px,env(safe-area-inset-right)) + 118px);bottom:max(20px,env(safe-area-inset-bottom));font-size:16px}
+#tG{width:84px;height:84px;right:max(18px,env(safe-area-inset-right));bottom:calc(max(20px,env(safe-area-inset-bottom)) + 118px);font-size:16px;display:none}
+body.manual #tG{display:block}
+#tbar{position:fixed;z-index:3;display:none;gap:6px;right:max(12px,env(safe-area-inset-right));top:calc(max(12px,env(safe-area-inset-top)) + 104px)}
+body.touch.playing #tbar{display:flex}
+#tbar button{width:44px;height:44px;min-height:44px;padding:0;border-radius:10px;background:#0b1220aa;font-size:20px}
+body.touch #tl{top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));padding:6px 12px 8px}
+body.touch #tl .t{font-size:30px}body.touch #tl .s{font-size:13px;max-width:calc(100vw - 150px - env(safe-area-inset-left) - env(safe-area-inset-right))}
+body.touch #map{width:96px;height:96px;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right))}
+body.touch #prof,body.touch #credit{display:none}
+body.touch #note{top:calc(max(12px,env(safe-area-inset-top)) + 106px);left:max(12px,env(safe-area-inset-left));transform:none;text-align:left}
+body.touch #note .now{font-size:22px;min-width:0;white-space:nowrap}body.touch #note .nxt{font-size:14px}
+body.touch #spd{top:calc(max(12px,env(safe-area-inset-top)) + 156px);bottom:auto;right:max(12px,env(safe-area-inset-right))}
+body.touch #spd .v{font-size:40px}body.touch #spd .g{font-size:20px}body.touch #spd .u{font-size:12px}body.touch #hbI{display:none}
+body.touch #rpm{width:120px}
+body.touch #coach{bottom:calc(max(20px,env(safe-area-inset-bottom)) + 130px)}
+body.touch #coach .step{font-size:22px}body.touch #coach .why{font-size:14px}
+body.touch #msg{font-size:clamp(34px,11vw,70px)}
+@media (orientation:landscape){
+ body.touch #note{top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);text-align:center}
+ body.touch #spd{top:auto;bottom:max(10px,env(safe-area-inset-bottom));right:auto;left:50%;transform:translateX(-50%);text-align:center}
+ body.touch #rpm{margin:6px auto 0}
+ body.touch #coach{bottom:auto;top:78px;width:min(520px,52vw)}
+ body.touch #tl .s{max-width:27vw}
+ #steer{width:46%;height:70%}
+}
+@media (max-height:420px){#tH{width:88px;height:88px}#tB,#tG{width:72px;height:72px}#tB{right:calc(max(14px,env(safe-area-inset-right)) + 100px)}#tG{bottom:calc(max(20px,env(safe-area-inset-bottom)) + 100px)}}
 </style>
 </head>
 <body>
@@ -75,12 +126,13 @@ table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding
 <div class="hud" id="spd"><span id="hbI">HANDBRAKE</span><span class="v" id="kmh">0</span><span class="g" id="gear">N</span><div class="u" id="alt">km/h</div><div id="rpm"><i id="rpmBar" style="width:0"></i></div></div>
 <div class="hud" id="msg"></div>
 <div class="hud" id="coach"><div class="chips"><i id="cB">↓ BRAKE</i><i id="cS">← → STEER</i><i id="cH">SPACE · HANDBRAKE</i><i id="cT">↑ THROTTLE</i></div><div class="step" id="cStep"></div><div class="why" id="cWhy"></div></div>
-<div id="touch"><button id="tL" style="left:16px">◀</button><button id="tR" style="left:100px">▶</button><button id="tB" style="right:100px">BRK</button><button id="tG" style="right:16px">GAS</button><button id="tH" style="right:58px;bottom:176px">HB</button></div>
+<div id="touch" aria-hidden="true"><div id="steer"><div id="ring"><b>◀ DRAG TO STEER ▶</b><i id="knob"></i></div></div><button id="tH">HB</button><button id="tB">BRAKE</button><button id="tG">GAS</button></div>
+<div id="tbar"><button id="bMenu" aria-label="Menu">☰</button><button id="bCam" aria-label="Change camera">◉</button><button id="bRes" aria-label="Back on the road, plus 4 seconds">⟲</button></div>
 
 <div class="card" id="start" hidden><div class="in">
   <h1>Endless Hairpins</h1>
   <p>One mountain pass, one hairpin after another, all the way up. Every hairpin is timed. The fast way round is a handbrake 180.</p>
-  <div class="keys" style="margin:0 0 10px"><b>The turn:</b> brake late, turn in hard, tap <b>Space</b> to throw the tail round, release as the nose points up the next straight, then full throttle. Chevron boards mark the outside of every bend.</div>
+  <div class="keys" style="margin:0 0 10px"><b>The turn:</b> brake late, turn in hard, tap <b class="hbn">Space</b> to throw the tail round, release as the nose points up the next straight, then full throttle. Chevron boards mark the outside of every bend.</div>
   <div class="row" role="group" aria-label="Run length">
     <button data-g="10" aria-pressed="true">10 hairpins</button>
     <button data-g="25" aria-pressed="false">25 hairpins</button>
@@ -95,9 +147,12 @@ table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding
   <div class="keys" id="carInfo" style="margin:0 0 6px"></div>
   <label><input type="checkbox" id="voice" checked> Co-driver calls the hairpins</label>
   <label><input type="checkbox" id="sound" checked> Engine, tyre and anti-lag pops</label>
-  <div class="row"><button class="go" id="goBtn">Start climb</button><button id="tutBtn">Tutorial: learn the handbrake turn</button></div>
+  <label class="tonly"><input type="checkbox" id="autogas" checked> Auto throttle (you steer, brake and handbrake)</label>
+  <label class="tonly"><input type="checkbox" id="haptics" checked> Vibration on walls and perfect turns (Android)</label>
+  <div class="row sticky"><button class="go" id="goBtn">Start climb</button><button id="tutBtn">Tutorial: learn the handbrake turn</button></div>
   <div id="best" class="keys"></div>
-  <div class="keys">↑/W throttle · ↓/S brake &amp; reverse · ←→/AD steer · Space handbrake<br>C camera · I isometric · V voice · R back on the road (+4 s) · Esc menu · gamepad: stick, triggers, A handbrake</div>
+  <div class="keys tonly">Drag anywhere on the left to steer · HB handbrake · BRAKE · ☰ menu (tap twice) · ◉ camera · ⟲ back on road (+4 s). Best in portrait or landscape, add to home screen for full screen.</div>
+  <div class="keys konly">↑/W throttle · ↓/S brake &amp; reverse · ←→/AD steer · Space handbrake<br>C camera · I isometric · V voice · R back on the road (+4 s) · Esc menu · gamepad: stick, triggers, A handbrake</div>
 </div></div>
 
 <div class="card" id="fin" hidden><div class="in">
@@ -116,10 +171,12 @@ const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},se
 const wrapA=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a};
 
 // ---------- three ----------
-const canvas=$('#gl'),R=new THREE.WebGLRenderer({canvas,antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
+const COARSE=matchMedia('(any-pointer:coarse)').matches&&!matchMedia('(hover:hover) and (pointer:fine)').matches;
+let TOUCH=COARSE,autoGas=store.get('hp-auto')!=='0',haptics=store.get('hp-hap')!=='0',ASP=1,PR=Math.min(devicePixelRatio||1,COARSE?1.5:2);
+const canvas=$('#gl'),R=new THREE.WebGLRenderer({canvas,antialias:!COARSE||(devicePixelRatio||1)<2,powerPreference:'high-performance'});R.setPixelRatio(PR);
 const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(64,1,0.3,2500);
 const OS=19,ocam=new THREE.OrthographicCamera(-OS,OS,OS,-OS,1,700);
-function size(){R.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();const a=innerWidth/innerHeight;ocam.left=-OS*a;ocam.right=OS*a;ocam.top=OS;ocam.bottom=-OS;ocam.updateProjectionMatrix()}addEventListener('resize',size);size();
+function size(){R.setSize(innerWidth,innerHeight,false);const a=innerWidth/innerHeight;ASP=a;cam.aspect=a;cam.updateProjectionMatrix();const hw=a<1?OS:OS*a,hh=hw/a;ocam.left=-hw;ocam.right=hw;ocam.top=hh;ocam.bottom=-hh;ocam.updateProjectionMatrix()}addEventListener('resize',size);addEventListener('orientationchange',()=>setTimeout(size,200));size();
 const hemi=new THREE.HemisphereLight(0xcfe3ff,0x34452a,0.8),sun=new THREE.DirectionalLight(0xfff1d6,0.9);scene.add(hemi,sun);
 
 // ---------- constants ----------
@@ -279,7 +336,26 @@ const K={};addEventListener('keydown',e=>{K[e.code]=1;if(['ArrowUp','ArrowDown',
   if(e.code==='KeyC'){camMode=(camMode+1)%4;flash(['Chase camera','Far chase camera','Bonnet camera','Isometric view'][camMode],700)}if(e.code==='KeyI'){camMode=camMode===3?0:3;flash(camMode===3?'Isometric view':'Chase camera',700)}if(e.code==='KeyV'){voice=!voice;flash(voice?'Voice on':'Voice off',800)}if(e.code==='KeyR'&&state==='run')resetToRoad(true);
   if((e.code==='Escape'||e.code==='KeyP')&&state==='run')toMenu()});
 addEventListener('keyup',e=>{K[e.code]=0});
-if('ontouchstart' in window){$('#touch').style.display='block';[['tL','ArrowLeft'],['tR','ArrowRight'],['tG','ArrowUp'],['tB','ArrowDown'],['tH','Space']].forEach(([id,c])=>{const b=$('#'+id);b.addEventListener('touchstart',e=>{e.preventDefault();K[c]=1});b.addEventListener('touchend',e=>{e.preventDefault();K[c]=0})})}
+const buzz=p=>{if(haptics&&TOUCH&&navigator.vibrate)try{navigator.vibrate(p)}catch(e){}};
+const HBW=()=>TOUCH?'HB':'SPACE';
+function setTouch(v){TOUCH=v;document.body.classList.toggle('touch',v);document.body.classList.toggle('manual',v&&!autoGas);
+  document.querySelectorAll('.hbn').forEach(e=>e.textContent=v?'the HB button':'Space');
+  $('#cB').textContent=v?'BRAKE':'↓ BRAKE';$('#cS').textContent=v?'DRAG · STEER':'← → STEER';$('#cH').textContent=v?'HB · HANDBRAKE':'SPACE · HANDBRAKE';$('#cT').textContent=v?'AUTO GAS':'↑ THROTTLE'}
+function holdBtn(id,code){const b=$('#'+id);const off=()=>{K[code]=0;b.classList.remove('on')};
+  b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}K[code]=1;b.classList.add('on');if(code==='Space')buzz(12)});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(t=>b.addEventListener(t,off))}
+holdBtn('tH','Space');holdBtn('tB','ArrowDown');holdBtn('tG','ArrowUp');
+{const z=$('#steer'),kn=$('#knob');let pid=null,ox=0;const RNG=()=>Math.max(55,Math.min(innerWidth*0.17,90));
+ z.addEventListener('pointerdown',e=>{if(pid!==null)return;e.preventDefault();pid=e.pointerId;try{z.setPointerCapture(pid)}catch(_){}ox=e.clientX;K.tax=0});
+ z.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;const r=RNG();let d=(e.clientX-ox)/r;if(d>1){ox=e.clientX-r;d=1}else if(d<-1){ox=e.clientX+r;d=-1}d=Math.abs(d)<0.04?0:d;K.tax=d;kn.style.transform='translateX('+(d*48).toFixed(0)+'px)'});
+ const end=e=>{if(e.pointerId!==pid)return;pid=null;K.tax=null;kn.style.transform=''};['pointerup','pointercancel'].forEach(t=>z.addEventListener(t,end))}
+let quitArm=0;
+$('#bMenu').addEventListener('click',()=>{if(performance.now()<quitArm){quitArm=0;toMenu()}else{quitArm=performance.now()+1800;flash('Tap ☰ again to quit the run',1500)}});
+$('#bCam').addEventListener('click',()=>{camMode=(camMode+1)%4;flash(['Chase camera','Far chase camera','Bonnet camera','Isometric view'][camMode],700)});
+$('#bRes').addEventListener('click',()=>{if(state==='run')resetToRoad(true)});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('touchstart',()=>{if(!TOUCH)setTouch(true)},{once:true,passive:true});
+document.addEventListener('visibilitychange',()=>{if(!ac)return;try{document.hidden?ac.suspend():ac.resume()}catch(e){}});
 function pad(){const gp=navigator.getGamepads?[...navigator.getGamepads()].find(g=>g):null;if(!gp){if(K.gp){K.ax=K.thrA=K.brkA=null;K.gp=0}return}K.gp=1;
   const a=gp.axes[0]||0;K.ax=Math.abs(a)<0.08?0:a;K.thrA=gp.buttons[7]?gp.buttons[7].value:0;K.brkA=gp.buttons[6]?gp.buttons[6].value:0;
   const h=(gp.buttons[0]&&gp.buttons[0].pressed)||(gp.buttons[2]&&gp.buttons[2].pressed);K.Space=h?1:K.gpHb?0:K.Space;K.gpHb=h}
@@ -315,13 +391,13 @@ function resetToRoad(p){const i=C.idx;placeAt(Math.min(i+2,PX.length-3));if(p){p
 function track(){let bi=C.idx,bd=1e18;for(let i=Math.max(0,C.idx-30);i<Math.min(PX.length,C.idx+30);i++){const dx=PX[i]-C.x,dz=PZ[i]-C.z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i}}C.idx=bi;
   const dx=C.x-PX[bi],dz=C.z-PZ[bi];C.lat=dx*-TZ[bi]+dz*TX[bi];C.along=dx*TX[bi]+dz*TZ[bi]}
 function step(dt){
-  const up=K.ArrowUp||K.KeyW,dn=K.ArrowDown||K.KeyS,lt=K.ArrowLeft||K.KeyA,rt=K.ArrowRight||K.KeyD,hb=K.Space||K.ShiftLeft||K.ShiftRight;
+  const dn=K.ArrowDown||K.KeyS,up=K.ArrowUp||K.KeyW||(autoGas&&TOUCH&&!dn),lt=K.ArrowLeft||K.KeyA,rt=K.ArrowRight||K.KeyD,hb=K.Space||K.ShiftLeft||K.ShiftRight;
   const fx=Math.sin(C.H),fz=-Math.cos(C.H),rx=Math.cos(C.H),rz=Math.sin(C.H);
   let vf=C.vx*fx+C.vz*fz,vr=C.vx*rx+C.vz*rz;
   track();const i=C.idx,alat=Math.abs(C.lat);
   const mu=1.05-0.15*sstep(150,300,C.y);
   C.thr+=((K.thrA!=null?K.thrA:up?1:0)-C.thr)*Math.min(1,dt*10);C.brk=(K.brkA!=null?K.brkA>0.3:dn)?1:0;C.hb=hb?1:0;
-  const ms=MS/(1+Math.abs(vf)/20),tgt=(K.ax!=null?K.ax:(rt?1:0)-(lt?1:0))*ms;C.steer+=(tgt-C.steer)*Math.min(1,dt*(tgt?7:10));
+  const ms=MS/(1+Math.abs(vf)/20),tgt=(K.ax!=null?K.ax:K.tax!=null?K.tax:(rt?1:0)-(lt?1:0))*ms;C.steer+=(tgt-C.steer)*Math.min(1,dt*(tgt?7:10));
   const sv=Math.max(Math.abs(vf),3),sg=vf>=0?1:-1;
   const af=Math.atan2(vr+A*C.w,sv)-C.steer*sg,ar=Math.atan2(vr-B*C.w,sv);
   const Nf=M*g*B/(A+B),Nr=M*g*A/(A+B),muR=hb?mu*0.36:mu;
@@ -339,7 +415,7 @@ function step(dt){
   if(alat>WALL){const side=Math.sign(C.lat),nx=-TZ[i]*side,nz=TX[i]*side,p2=alat-WALL;C.x-=nx*p2;C.z-=nz*p2;const vn=C.vx*nx+C.vz*nz;
     if(vn>0){C.vx-=nx*vn*1.2;C.vz-=nz*vn*1.2;const fr=Math.max(0.5,1-0.04*vn);C.vx*=fr;C.vz*=fr;C.w*=Math.max(0.6,fr);
       let he=Math.atan2(TX[i],-TZ[i])-C.H;he=wrapA(he);if(Math.abs(he)<2.2)C.H+=he*0.03;
-      if(vn>3.5&&performance.now()-lastWall>500){hits++;hpHits++;lastWall=performance.now();flash('Wall!',500,'warn')}}}
+      if(vn>3.5&&performance.now()-lastWall>500){hits++;hpHits++;lastWall=performance.now();flash('Wall!',500,'warn');buzz(40)}}}
   C.vf=vf;C.vr=vr;C.slip=Math.hypot(Math.max(0,Math.abs(vr)-1.5),0)+(hb&&Math.abs(vf)>3?3:0)}
 
 // ---------- hairpin run logic ----------
@@ -358,10 +434,10 @@ function update(dt){
       if(hpIn&&gi>=hp.sOut){hpIn=false;const T=clock-hpT0,vx=Math.hypot(C.vx,C.vz),he=Math.abs(wrapA(Math.atan2(TX[gi],-TZ[gi])-C.H)),clean=hpHits===0&&he<0.35&&Math.abs(C.lat)<2.6,gr=hpHits?'WALL':gradeOf(T,false)+(clean?'':'');
         hpRes.push({k:hp.k,t:T,hits:hpHits,exit:vx*3.6});const best=parseFloat(store.get('hp-bhp-'+carDef.id));if(!(best<=T))store.set('hp-bhp-'+carDef.id,T);
         const label=hpHits?(T<=PAR*1.15?'TOUCHED THE WALL':'SLOPPY'):(T<=PAR&&clean?'PERFECT 180':T<=PAR*1.13?'GREAT':T<=PAR*1.33?'GOOD':'SLOW');
-        flash(label+'  '+T.toFixed(2)+' s',1700,label.startsWith('PERFECT')?'perfect':label==='SLOW'||label==='SLOPPY'?'warn':'');
+        flash(label+'  '+T.toFixed(2)+' s',1700,label.startsWith('PERFECT')?'perfect':label==='SLOW'||label==='SLOPPY'?'warn':'');if(label.startsWith('PERFECT'))buzz([18,40,18]);
         $('#last').textContent=`Hairpin ${hp.k+1}: ${T.toFixed(2)} s · exit ${Math.round(vx*3.6)} km/h · ${label}`;
         if(tutorial){const dh=hbAt,v0=hpVmax*3.6;let tip=hpHits?'You hit the wall: brake earlier or start the handbrake sooner.':T<=PAR*1.15?'Clean turn. Now try holding it with less brake.':'Slow turn: hold the handbrake until the car has rotated far enough, then release.';
-          if(dh===null)tip='You never used the handbrake. Hold SPACE when the coach says HANDBRAKE NOW.';else if(dh>16)tip='Handbrake was early: wait for the prompt.';else if(dh<-2)tip='Handbrake was late: press it as the prompt appears.';
+          if(dh===null)tip='You never used the handbrake. Hold '+(TOUCH?'HB':'SPACE')+' when the coach says HANDBRAKE NOW.';else if(dh>16)tip='Handbrake was early: wait for the prompt.';else if(dh<-2)tip='Handbrake was late: press it as the prompt appears.';
           flash('Tip: '+tip,3200)}hbAt=null;hpI++;spoke=-1;updHud();
         if(tutorial&&hpI>=goal){tutorial=false;$('#coach').style.display='none';goal=+(document.querySelector('[data-g][aria-pressed=true]')||{dataset:{g:10}}).dataset.g;state='fin';$('#finT').textContent='Tutorial complete';$('#finTab').innerHTML=`<tr><td>Hairpins practised</td><td>${hpRes.length}</td></tr><tr><td>Best hairpin</td><td>${Math.min(...hpRes.map(r=>r.t)).toFixed(2)} s</td></tr><tr><td>Wall hits</td><td>${hits}</td></tr>`;setTimeout(()=>{$('#fin').hidden=false},1200)}else if(goal>0&&hpI>=goal)finishRun()}}
     const nh=HPS[hpI];if(nh){const dist=(nh.sIn+6-C.idx)*ds;if(dist<180&&spoke!==hpI){spoke=hpI;say('hairpin '+nh.dir)}
@@ -374,12 +450,12 @@ function coachUpdate(){const el=$('#coach');if(!tutorial){el.style.display='none
   const hp=HPS[hpI];if(!hp)return;const v=Math.max(C.vf,0),dIn=(hp.s0-C.idx)*ds,sg=hp.dir==='right'?1:-1,rot=sg*wrapA(C.H-Math.atan2(TX[hp.s0],-TZ[hp.s0])),
     dTurn=Math.max(10,v*0.5),dHB=Math.max(6,v*0.33),lane=sg>0?'left':'right';
   let step,why,on='T',hbs=false;
-  if(hpIn&&rot>1.9){step='RELEASE · FULL THROTTLE';why='Nose is pointing up the next straight. Let go of Space, straighten the wheel and floor it.';on='T'}
-  else if(hpIn&&C.hb&&rot>0.15){step='HOLD SPACE · KEEP STEERING';why='Keep the wheel '+hp.dir+' and keep Space down until the car has turned about 110°.';on='SH';hbs=true}
-  else if(dIn<=dHB&&dIn>-8&&rot<0.9){step='HANDBRAKE NOW';why='Press and hold SPACE while steering '+hp.dir+'. The tail will swing round.';on='SH';hbs=true}
+  if(hpIn&&rot>1.9){step='RELEASE · FULL THROTTLE';why='Nose is pointing up the next straight. Let go of '+(TOUCH?'HB':'Space')+', straighten up and '+(TOUCH?'keep going.':'floor it.');on='T'}
+  else if(hpIn&&C.hb&&rot>0.15){step='HOLD '+HBW()+' · KEEP STEERING';why='Keep steering '+hp.dir+' and keep '+(TOUCH?'HB':'Space')+' down until the car has turned about 110°.';on='SH';hbs=true}
+  else if(dIn<=dHB&&dIn>-8&&rot<0.9){step='HANDBRAKE NOW';why='Press and hold '+(TOUCH?'HB':'SPACE')+' while steering '+hp.dir+'. The tail will swing round.';on='SH';hbs=true}
   else if(dIn<=dTurn&&dIn>-8&&rot<0.9){step='STEER '+hp.dir.toUpperCase();why='Turn in now. In a moment you will be told to hit the handbrake.';on='S'}
   else if(dIn<=dTurn+Math.max(25,v*1.3)&&dIn>0&&v>13){step='BRAKE';why='Slow to about 50–60 km/h. Approach from the '+lane+' side of the road for a wider arc.';on='B'}
-  else if(dIn>0){step='ACCELERATE';why='Hairpin '+hp.dir+' ahead in '+Math.round(dIn/10)*10+' m. Build speed on the straight, then brake late.';on='T'}
+  else if(dIn>0){step='ACCELERATE';why='Hairpin '+hp.dir+' ahead in '+Math.round(dIn/10)*10+' m. '+(autoGas&&TOUCH?'Keep it flat out':'Build speed')+' on the straight, then brake late.';on='T'}
   else{step='STRAIGHTEN UP';why='Full throttle out of the corner.';on='T'}
   $('#cStep').textContent=step;$('#cStep').className='step'+(hbs?' hb':'');$('#cWhy').textContent=why;
   const on2=(id,k)=>{const e=$(id);e.className=on.includes(k)?'on'+(k==='H'?' hb':''):''};on2('#cB','B');on2('#cS','S');on2('#cH','H');on2('#cT','T');
@@ -424,8 +500,10 @@ function alsUpdate(dt,rpm,kmh){
   alsTimer-=dt;if(alsLevel>0.05&&C.thr<0.5&&alsTimer<=0){fire(0.35+Math.random()*0.65*alsLevel);alsTimer=0.035+Math.random()*0.11/(0.3+alsLevel)}
   flames.forEach(f=>{if(f.life>0){f.life-=dt*6;f.sp.position.x+=f.vx*dt;f.sp.position.z+=f.vz*dt;f.sp.position.y+=f.vy*dt;const s=f.s*0.55*(1.2+(1-f.life)*1.4);f.sp.scale.set(s,s,1);f.sp.material.opacity=Math.max(0,f.life);if(f.life<=0)f.sp.visible=false}});
   exL=Math.max(0,exL-dt*14);exLight.intensity=exL*(cond==='night'?3:1.2)}
-let last=performance.now(),mkT=0;const tmpV=new THREE.Vector3(),camLook=new THREE.Vector3();
-function frame(now){requestAnimationFrame(frame);pad();let dt=Math.min(0.05,(now-last)/1000);last=now;if(!$('#start').hidden)renderPrev(dt);
+let last=performance.now(),mkT=0,playing=false,emaDt=0.016,emaN=0;const tmpV=new THREE.Vector3(),camLook=new THREE.Vector3();
+function frame(now){requestAnimationFrame(frame);pad();const raw=(now-last)/1000;let dt=Math.min(0.05,raw);last=now;
+  const pl=state==='run'||state==='count';if(pl!==playing){playing=pl;document.body.classList.toggle('playing',pl);emaN=0}
+  if(state==='run'&&raw<0.2){emaDt+=(raw-emaDt)*0.05;if(++emaN>150){emaN=0;if(emaDt>0.027&&PR>0.75){PR=Math.max(0.75,PR-0.25);R.setPixelRatio(PR);size()}}}if(!$('#start').hidden)renderPrev(dt);
   if(state==='count'){countdown-=dt;const c=Math.ceil(countdown);$('#msg').className='hud';$('#msg').style.opacity=1;$('#msg').textContent=countdown>0?c:'GO';if(countdown<=0){state='run';setTimeout(()=>$('#msg').style.opacity=0,700)}}
   update(dt);ensureChunks(2);
   if(PAIRS.length>3&&PAIRS[1].i1<C.idx-70){dropPair(PAIRS.shift())}
@@ -463,10 +541,10 @@ function poseCar(dt,now){
   const fx=Math.sin(cy),fz=-Math.cos(cy);
   if(camMode===3){ocam.position.set(C.x+60,C.y+70,C.z-60);ocam.lookAt(C.x,C.y+1,C.z)}
   else if(camMode===2){cam.position.set(C.x+Math.sin(C.H)*0.3,C.y+1.15,C.z-Math.cos(C.H)*0.3);camLook.set(C.x+Math.sin(C.H)*20,C.y+1,C.z-Math.cos(C.H)*20)}
-  else{const back=camMode?12:7.5,hi=camMode?5.2:3;tmpV.set(C.x-fx*back,C.y+hi,C.z-fz*back);const th=terr(tmpV.x,tmpV.z)+1.5;if(tmpV.y<th)tmpV.y=th;
+  else{const pk=ASP<1?1+Math.min(0.35,(1-ASP)*0.7):1,back=(camMode?12:7.5)*pk,hi=(camMode?5.2:3)*(1+(pk-1)*0.8);tmpV.set(C.x-fx*back,C.y+hi,C.z-fz*back);const th=terr(tmpV.x,tmpV.z)+1.5;if(tmpV.y<th)tmpV.y=th;
     cam.position.lerp(tmpV,state==='run'?1-Math.exp(-dt*9):1);camLook.set(C.x+fx*5,C.y+1.1,C.z+fz*5)}
   if(window.__camO){cam.position.set(...window.__camO.p);camLook.set(...window.__camO.l)}
-  cam.lookAt(camLook);const wf=camMode===2?74:64;if(cam.fov!==wf){cam.fov=wf;cam.updateProjectionMatrix()}car.visible=camMode!==2;
+  cam.lookAt(camLook);const wf=(camMode===2?74:64)+(ASP<1?Math.min(26,(1-ASP)*55):0);if(cam.fov!==wf){cam.fov=wf;cam.updateProjectionMatrix()}car.visible=camMode!==2;
   sun.position.set(C.x+SUN.x*400,C.y+SUN.y*400,C.z+SUN.z*400);sun.target.position.set(C.x,C.y,C.z);sun.target.updateMatrixWorld();
 }
 scene.add(sun.target);
@@ -486,11 +564,13 @@ $('#cars').innerHTML=CARS.map(c=>`<button data-car="${c.id}" aria-pressed="false
 document.querySelectorAll('[data-car]').forEach(b=>b.onclick=()=>pickCar(b.dataset.car));
 document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{cond=b.dataset.c;document.querySelectorAll('[data-c]').forEach(x=>x.setAttribute('aria-pressed',x===b));applyCond()});
 document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{goal=+b.dataset.g;document.querySelectorAll('[data-g]').forEach(x=>x.setAttribute('aria-pressed',x===b));showBest()});
-$('#goBtn').onclick=()=>{tutorial=false;goal=+(document.querySelector('[data-g][aria-pressed=true]')||{dataset:{g:10}}).dataset.g;voice=$('#voice').checked;sound=$('#sound').checked;applyCond();start()};
-$('#tutBtn').onclick=()=>{tutorial=true;goal=5;voice=$('#voice').checked;sound=$('#sound').checked;applyCond();start()};
+const readOpts=()=>{autoGas=$('#autogas').checked;haptics=$('#haptics').checked;store.set('hp-auto',autoGas?'1':'0');store.set('hp-hap',haptics?'1':'0');document.body.classList.toggle('manual',TOUCH&&!autoGas);if(TOUCH&&document.documentElement.requestFullscreen&&!document.fullscreenElement)try{document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{})}catch(e){}};
+$('#goBtn').onclick=()=>{readOpts();tutorial=false;goal=+(document.querySelector('[data-g][aria-pressed=true]')||{dataset:{g:10}}).dataset.g;voice=$('#voice').checked;sound=$('#sound').checked;applyCond();start()};
+$('#tutBtn').onclick=()=>{readOpts();tutorial=true;goal=5;voice=$('#voice').checked;sound=$('#sound').checked;applyCond();start()};
 $('#again').onclick=start;$('#menu').onclick=toMenu;
 
 window.HP={C,K,step,update,get state(){return state},set state(v){state=v},get HPS(){return HPS},get hpRes(){return hpRes},PX:()=>PX,PZ:()=>PZ,TX:()=>TX,TZ:()=>TZ,selectCar,start,resetWorld,fire,alsUpdate,flames,dbg:()=>flames.map(f=>[f.life.toFixed(2),f.sp.visible,f.sp.position.x.toFixed(0),f.sp.position.y.toFixed(0),f.sp.position.z.toFixed(0),f.s.toFixed(1)]).filter(a=>a[1]).concat([[C.x.toFixed(0),C.y.toFixed(0),C.z.toFixed(0)]]),setPar:v=>PAR=v,get PAR(){return PAR},ds,RAD,HW,get clock(){return clock}};
+$('#autogas').checked=autoGas;$('#haptics').checked=haptics;setTouch(TOUCH);
 pickCar(store.get('hp-car')||'imp');applyCond();resetWorld();placeAt(10);track();$('#load').remove();$('#start').hidden=false;requestAnimationFrame(frame);
 }).catch(e=>{document.querySelector('#load').textContent='Could not load car models ('+e.message+')'});
 </script>
