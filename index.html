@@ -53,8 +53,8 @@ canvas.map{display:block;width:100%;height:110px;margin:6px 0}
 .ini{display:flex;gap:10px;justify-content:center;margin:12px 0}.ini div{text-align:center}.ini b{display:block;font-size:72px;line-height:1;width:64px;border-bottom:5px solid var(--yel);margin:4px 0}.ini button{min-height:40px;width:64px;padding:0}
 #touch{position:fixed;inset:0;z-index:3;display:none;pointer-events:none}
 body.touch.playing #touch{display:block}#touch>*{pointer-events:auto}
-#steer{position:absolute;left:0;bottom:0;width:56%;height:55%;touch-action:none}
-#ring{position:absolute;left:max(26px,env(safe-area-inset-left));bottom:calc(max(26px,env(safe-area-inset-bottom)) + 18px);width:150px;height:64px;border-radius:32px;border:3px solid #fff5;background:#0b122066;display:grid;place-items:center;pointer-events:none}
+#steer{position:absolute;left:0;bottom:0;width:60%;height:70%;touch-action:none}
+#ring{position:absolute;left:max(26px,env(safe-area-inset-left));bottom:calc(max(26px,env(safe-area-inset-bottom)) + 18px);width:150px;height:150px;border-radius:50%;border:3px solid #fff5;background:#0b122066;display:grid;place-items:center;pointer-events:none;font-size:15px;font-weight:800;color:#fff9}#ring b{position:absolute;line-height:1}#ring .u{top:8px}#ring .d{bottom:8px}#ring .l{left:10px}#ring .r{right:10px}
 #knob{width:52px;height:52px;border-radius:50%;background:#fffd}
 #touch button{position:absolute;border-radius:50%;border:3px solid #fff8;background:#0b1220a8;color:#fff;font-weight:800;padding:0;min-height:0;touch-action:none}
 #touch button.on{background:#d7192add;border-color:#fff}
@@ -83,7 +83,7 @@ body.touch.playing #tcam{display:block}
 <div class="hud" id="msg"></div>
 <div class="hud" id="prog"><canvas id="progC" width="900" height="44"></canvas></div>
 <div id="banner"><span id="banT"></span><small id="banS"></small></div>
-<div id="touch" aria-hidden="true"><div id="steer"><div id="ring"><i id="knob"></i></div></div><button id="tH">HB</button><button id="tB">BRAKE</button></div>
+<div id="touch" aria-hidden="true"><div id="steer"><div id="ring"><b class="u">GAS</b><b class="d">BRAKE</b><b class="l">◀</b><b class="r">▶</b><i id="knob"></i></div></div><button id="tH">HB</button><button id="tB">BRAKE</button></div>
 <button class="hud" id="quit" aria-label="Quit to menu">☰</button>
 <button id="tcam" aria-label="Change camera">◉</button>
 <button id="skip">Skip ▶</button>
@@ -349,10 +349,14 @@ addEventListener('keydown',e=>{if(GS.mode==='initials'){initKey(e);return}K[e.co
 addEventListener('keyup',e=>{K[e.code]=0});
 function holdBtn(id,code){const b=$('#'+id),off=()=>{K[code]=0;b.classList.remove('on')};b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}K[code]=1;b.classList.add('on')});['pointerup','pointercancel','lostpointercapture'].forEach(t=>b.addEventListener(t,off))}
 holdBtn('tH','Space');holdBtn('tB','ArrowDown');$('#tcam').onclick=()=>camMode=(camMode+1)%3;
-{const z=$('#steer'),kn=$('#knob');let pid=null,ox=0;const RNG=()=>Math.max(55,Math.min(innerWidth*.17,90));
- z.addEventListener('pointerdown',e=>{if(pid!==null)return;e.preventDefault();pid=e.pointerId;try{z.setPointerCapture(pid)}catch(_){}ox=e.clientX;K.tax=0});
- z.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;const r=RNG();let d=(e.clientX-ox)/r;if(d>1){ox=e.clientX-r;d=1}else if(d<-1){ox=e.clientX+r;d=-1}d=Math.abs(d)<.04?0:d;K.tax=d;kn.style.transform='translateX('+(d*48).toFixed(0)+'px)'});
- const end=e=>{if(e.pointerId!==pid)return;pid=null;K.tax=null;kn.style.transform=''};['pointerup','pointercancel'].forEach(t=>z.addEventListener(t,end))}
+{const z=$('#steer'),kn=$('#knob');let pid=null,ox=0,oy=0;const RNG=()=>Math.max(60,Math.min(innerWidth*.16,85)),RY=48;
+ const set=e=>{const r=RNG();let dx=(e.clientX-ox)/r,dy=(e.clientY-oy)/RY;if(dx>1){ox=e.clientX-r;dx=1}else if(dx<-1){ox=e.clientX+r;dx=-1}
+  if(dy<-1){oy=e.clientY+RY;dy=-1}else if(dy>1){oy=e.clientY-RY;dy=1}
+  const a=Math.abs(dx)<.06?0:(Math.abs(dx)-.06)/.94;K.tax=Math.sign(dx)*Math.pow(a,1.5);K.tup=dy<-.12?Math.min(1,(-dy-.12)/.5):0;K.tdn=dy>.45?1:0;
+  kn.style.transform='translate('+(dx*48).toFixed(0)+'px,'+(dy*40).toFixed(0)+'px)'};
+ z.addEventListener('pointerdown',e=>{if(pid!==null)return;e.preventDefault();pid=e.pointerId;try{z.setPointerCapture(pid)}catch(_){}ox=e.clientX;oy=e.clientY+RY*.7;set(e)});
+ z.addEventListener('pointermove',e=>{if(e.pointerId===pid)set(e)});
+ const end=e=>{if(e.pointerId!==pid)return;pid=null;K.tax=null;K.tup=0;K.tdn=0;kn.style.transform=''};['pointerup','pointercancel'].forEach(t=>z.addEventListener(t,end))}
 addEventListener('touchstart',()=>{if(!TOUCH){TOUCH=true;document.body.classList.add('touch')}},{once:true,passive:true});if(TOUCH)document.body.classList.add('touch');
 let quitArm=0;const askQuit=()=>{if(!['run','count','fin'].includes(GS.mode))return;if(performance.now()<quitArm){quitArm=0;quitToTitle()}else{quitArm=performance.now()+1800;flash('Tap again to quit to menu',1500)}};$('#quit').onclick=askQuit;
 document.addEventListener('contextmenu',e=>e.preventDefault());
@@ -368,19 +372,20 @@ document.addEventListener('visibilitychange',()=>{if(!ac)return;try{document.hid
 // ================= player physics =================
 let M=1230,IZ=1900,A=1.25,B=1.3,CF=90000,CR=95000,PWR=215000,FMAX=9500,MS=.6;
 function applyPhys(){const p=carDef.phys;M=p.M;A=p.A;B=p.B;CF=p.CF;CR=p.CR;PWR=p.PWR;FMAX=p.FMAX;MS=p.steer;IZ=M*1.55}
+const steerLim=v=>MS*.8/(1+Math.pow(Math.abs(v)/9,1.15));
 function track(){let bi=C.idx,bd=1e18;for(let i=Math.max(0,C.idx-30);i<Math.min(N-1,C.idx+30);i++){const dx=PX[i]-C.x,dz=PZ[i]-C.z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i}}C.idx=bi;const dx=C.x-PX[bi],dz=C.z-PZ[bi];C.lat=dx*-TZ[bi]+dz*TX[bi];C.along=dx*TX[bi]+dz*TZ[bi];C.s=bi*ds+C.along}
 function vert(o,gy,dt,G){ // shared vertical dynamics for player and AI: ground following with take-off and landing
   if(!o.air){const yb=o.y+o.vy*dt-.5*G*dt*dt;if(o.vy>1.3&&yb>gy+.07){o.air=true;o.airT=0;o.vy-=G*dt;o.y=yb}else{o.vy=clamp((gy-o.y)/dt,-25,25);o.y=gy}}
   else{o.vy-=G*dt;o.y+=o.vy*dt;o.airT+=dt;if(o.y<=gy){const imp=-o.vy;o.y=gy;o.air=false;o.vy=0;return imp}}
   return 0}
 function inputs(){let up=K.ArrowUp||K.KeyW,dn=K.ArrowDown||K.KeyS,lt=K.ArrowLeft||K.KeyA,rt2=K.ArrowRight||K.KeyD,hb=K.Space||K.ShiftLeft;
-  if(TOUCH&&!dn)up=1;let ax=K.tax!=null?K.tax:(rt2?1:0)-(lt?1:0);
-  if(AUTO)return autoDrive();return{up:+!!up,dn:!!dn,hb:!!hb,ax}}
+  if(TOUCH){up=K.tup||0;dn=dn||K.tdn}let ax=K.tax!=null?K.tax:(rt2?1:0)-(lt?1:0);
+  if(AUTO)return autoDrive();return{up:typeof up==='number'?up:+!!up,dn:!!dn,hb:!!hb,ax}}
 function step(dt,inp){
   const fx=Math.sin(C.H),fz=-Math.cos(C.H),rx=Math.cos(C.H),rz=Math.sin(C.H);let vf=C.vx*fx+C.vz*fz,vr=C.vx*rx+C.vz*rz;
   track();const i=C.idx,alat=Math.abs(C.lat),hw=HWA[i];let mu=SURF[SFA[i]].mu;const off=alat>hw+.4;if(off)mu*=.74;
   C.thr+=(inp.up-C.thr)*Math.min(1,dt*10);C.brk=inp.dn?1:0;C.hb=inp.hb?1:0;const hb=inp.hb;
-  const ms=MS/(1+Math.abs(vf)/20),tgt=inp.ax*ms;C.steer+=(tgt-C.steer)*Math.min(1,dt*(tgt?7:10));
+  const ms=steerLim(vf),tgt=inp.ax*ms;C.steer+=(tgt-C.steer)*Math.min(1,dt*(tgt?4.5:9));
   if(C.air){C.vx*=1-.05*dt;C.vz*=1-.05*dt;C.x+=C.vx*dt;C.z+=C.vz*dt;C.H+=C.w*dt;C.w*=1-.5*dt}
   else{
     const sv=Math.max(Math.abs(vf),3),sg=vf>=0?1:-1,af=Math.atan2(vr+A*C.w,sv)-C.steer*sg,ar=Math.atan2(vr-B*C.w,sv);
@@ -506,14 +511,14 @@ function title(){GS.mode='title';document.body.classList.remove('playing');dispo
     <table><tr><td>1 · Desert</td><td class="stars">★☆☆</td></tr><tr><td>2 · Forest</td><td class="stars">★★☆</td></tr><tr><td>3 · Mountain</td><td class="stars">★★★</td></tr><tr><td>Bonus · Lakeside</td><td class="stars">win stage 3</td></tr></table>
     <div class="row" id="carRow" role="group" aria-label="Choose your car">${CARS.map(c=>`<button data-car="${c.id}" aria-pressed="${c.id===sel}">${c.short}</button>`).join('')}</div><div class="keys" id="carNote"></div>
     <div class="row"><button class="go" id="start">Championship</button><button class="go alt" id="prac" style="border-color:#fff">Practice</button></div><div class="row"><button id="hsb">High scores</button></div>
-    <div class="keys konly">↑/W gas · ↓/S brake · ←→/AD steer · Space handbrake (slides the tail in tight corners) · C camera · R back on road (−3 s) · Esc twice to quit</div><div class="keys tonly">Drag left side to steer · gas is automatic · BRAKE and HB buttons · ◉ camera</div></div>`);
+    <div class="keys konly">↑/W gas · ↓/S brake · ←→/AD steer · Space handbrake (slides the tail in tight corners) · C camera · R back on road (−3 s) · Esc twice to quit</div><div class="keys tonly">Left thumb: drag up for gas, down to brake, left/right to steer · BRAKE and HB buttons · ◉ camera</div></div>`);
   const note=()=>$('#carNote').textContent=carDef.short+': '+carDef.note;note();card.querySelectorAll('[data-car]').forEach(b=>b.onclick=()=>{selectCar(b.dataset.car);card.querySelectorAll('[data-car]').forEach(x=>x.setAttribute('aria-pressed',x===b));note()});
   $('#start').onclick=()=>{hideCard();newGame()};$('#hsb').onclick=()=>scores(-1);$('#prac').onclick=practiceMenu;$('#start').focus()}
 document.head.insertAdjacentHTML('beforeend','<style>body.touch .konly{display:none}body:not(.touch) .tonly{display:none}</style>');
 
 // ================= autopilot (testing) =================
 function autoDrive(){const sk=AUTO.skill||.9,s=C.s,v=Math.max(C.vf,0.1),L=7+v*.55,p=pathAt(s+L),nx=-p.tz,nz=p.tx,tx=p.x+nx*(AUTO.lane||0),tz=p.z+nz*(AUTO.lane||0);
-  const want=Math.atan2(tx-C.x,-(tz-C.z)),e=wrapA(want-C.H),ms=MS/(1+Math.abs(C.vf)/20);let ax=clamp(e*1.3/Math.max(ms,.05)*.6,-1,1);
+  const want=Math.atan2(tx-C.x,-(tz-C.z)),e=wrapA(want-C.H),ms=steerLim(C.vf);let ax=clamp(e*1.3/Math.max(ms,.05)*.6,-1,1);
   const vt=Math.min(PROF[Math.min(Math.floor((s+v*.5)/ds),N-1)],PROF[Math.min(Math.floor((s+v*1.2+8)/ds),N-1)])*sk;
   if(Math.abs(C.vf)<2&&GS.mode==='run'){AUTO._st=(AUTO._st||0)+1/60}else if(Math.abs(C.vf)>6)AUTO._st=0;
   if((AUTO._st||0)>1.2){if(AUTO._st>2.6)AUTO._st=0;return{up:0,dn:true,hb:false,ax:-ax}}
