@@ -85,7 +85,7 @@ table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding
   <canvas id="carPrev" width="360" height="104"></canvas>
   <div class="keys" id="carInfo" style="margin:0 0 6px"></div>
   <label><input type="checkbox" id="voice" checked> Co-driver calls the hairpins</label>
-  <label><input type="checkbox" id="sound" checked> Engine and tyre sound</label>
+  <label><input type="checkbox" id="sound" checked> Engine, tyre and anti-lag pops</label>
   <div class="row"><button class="go" id="goBtn">Start climb</button></div>
   <div id="best" class="keys"></div>
   <div class="keys">↑/W throttle · ↓/S brake &amp; reverse · ←→/AD steer · Space handbrake<br>C camera · I isometric · V voice · R back on the road (+4 s) · Esc menu · gamepad: stick, triggers, A handbrake</div>
@@ -269,9 +269,24 @@ function pad(){const gp=navigator.getGamepads?[...navigator.getGamepads()].find(
   const h=(gp.buttons[0]&&gp.buttons[0].pressed)||(gp.buttons[2]&&gp.buttons[2].pressed);K.Space=h?1:K.gpHb?0:K.Space;K.gpHb=h}
 
 // ---------- audio & voice ----------
-let ac,osc1,osc2,gain,nGain,voice=true,sound=true;
-function audioStart(){if(!sound||ac)return;try{ac=new(window.AudioContext||window.webkitAudioContext)();osc1=ac.createOscillator();osc2=ac.createOscillator();osc1.type='sawtooth';osc2.type='square';const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=900;gain=ac.createGain();gain.gain.value=0;osc1.connect(f);osc2.connect(f);f.connect(gain);gain.connect(ac.destination);osc1.start();osc2.start();
-  const buf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const ns=ac.createBufferSource();ns.buffer=buf;ns.loop=true;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1700;bp.Q.value=1.2;nGain=ac.createGain();nGain.gain.value=0;ns.connect(bp);bp.connect(nGain);nGain.connect(ac.destination);ns.start()}catch(e){ac=null}}
+let ac,osc1,osc2,osc3,gain,nGain,lfo,lfoG,eFilt,nbuf,voice=true,sound=true;
+// per-car engine character: k pitch, det beat between two banks, sub level, lfo [burble depth], cut filter, pop strength, flame size
+const SND={imp:{k:0.92,det:1.012,sub:.5,burble:.45,cut:.95,pop:.85,fl:1},del:{k:1.04,det:1.004,sub:.4,burble:0,cut:1.1,pop:.95,fl:1.05},esc:{k:0.96,det:1.003,sub:.55,burble:0,cut:.9,pop:1.05,fl:1.2},lan:{k:1.0,det:1.006,sub:.35,burble:0,cut:1.2,pop:.9,fl:1},cel:{k:1.02,det:1.005,sub:.45,burble:0,cut:1.0,pop:1,fl:1.1}};
+const snd=()=>SND[carDef.id]||SND.imp;
+function audioStart(){if(!sound||ac)return;try{ac=new(window.AudioContext||window.webkitAudioContext)();
+  osc1=ac.createOscillator();osc2=ac.createOscillator();osc3=ac.createOscillator();osc1.type='sawtooth';osc2.type='square';osc3.type='sawtooth';
+  eFilt=ac.createBiquadFilter();eFilt.type='lowpass';eFilt.frequency.value=900;const bm=ac.createGain();bm.gain.value=1;gain=ac.createGain();gain.gain.value=0;
+  const g1=ac.createGain(),g2=ac.createGain(),g3=ac.createGain();g1.gain.value=0.6;g2.gain.value=0.5;g3.gain.value=0.45;g2.connect(eFilt);osc1.connect(g1);osc2.connect(g2);osc3.connect(g3);g1.connect(eFilt);g3.connect(eFilt);
+  eFilt.connect(bm);bm.connect(gain);gain.connect(ac.destination);
+  lfo=ac.createOscillator();lfo.type='sine';lfoG=ac.createGain();lfoG.gain.value=0;lfo.connect(lfoG);lfoG.connect(bm.gain);lfo.start();
+  osc1.start();osc2.start();osc3.start();
+  nbuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const ns=ac.createBufferSource();ns.buffer=nbuf;ns.loop=true;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1700;bp.Q.value=1.2;nGain=ac.createGain();nGain.gain.value=0;ns.connect(bp);bp.connect(nGain);nGain.connect(ac.destination);ns.start()}catch(e){ac=null}}
+// anti-lag: a crack of unburnt fuel going off in the exhaust
+function popSound(st){if(!ac)return;const t=ac.currentTime,s=snd();
+  const src=ac.createBufferSource();src.buffer=nbuf;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=300+Math.random()*900;bp.Q.value=0.8;const gn=ac.createGain();
+  gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(0.5*st*s.pop,t+0.004);gn.gain.exponentialRampToValueAtTime(0.001,t+0.05+0.05*st);src.connect(bp);bp.connect(gn);gn.connect(ac.destination);src.start(t,Math.random()*0.8,0.2);
+  const o=ac.createOscillator(),og=ac.createGain();o.type='sine';o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(38,t+0.09);og.gain.setValueAtTime(0.3*st*s.pop,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.connect(og);og.connect(ac.destination);o.start(t);o.stop(t+0.12)}
 function say(t){if(!voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=1.4;u.lang='en-GB';speechSynthesis.speak(u)}catch(e){}}
 let msgT=0;function flash(t,ms,cls){const m=$('#msg');m.textContent=t;m.className='hud '+(cls||'');m.style.opacity=1;clearTimeout(msgT);msgT=setTimeout(()=>m.style.opacity=0,ms)}
 
@@ -357,6 +372,22 @@ function drawRadar(){mc.clearRect(0,0,300,300);const sc=1.15,cx=150,cy=215,ch=Ma
   mc.save();mc.translate(cx,cy);mc.fillStyle='#d7192a';mc.beginPath();mc.moveTo(0,-12);mc.lineTo(8,10);mc.lineTo(-8,10);mc.fill();mc.restore()}
 
 // ---------- loop ----------
+// ---------- anti-lag ----------
+const flameTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,1,32,32,31);gr.addColorStop(0,'rgba(255,250,210,1)');gr.addColorStop(0.25,'rgba(255,170,40,0.95)');gr.addColorStop(0.6,'rgba(255,80,10,0.5)');gr.addColorStop(1,'rgba(255,40,0,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
+const flames=[];for(let i=0;i<14;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:flameTex,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));sp.visible=false;scene.add(sp);flames.push({sp,life:0,s:1,vx:0,vy:0,vz:0})}
+const exLight=new THREE.PointLight(0xff7a22,0,14);scene.add(exLight);let fI=0,exL=0;
+function flame(st){const L2=carDef.len/2;[0.42,-0.42].forEach(sx=>{if(Math.random()<0.45&&sx<0)return;
+  const p=car.localToWorld(new THREE.Vector3(sx,0.38,L2+0.12)),f=flames[fI++%flames.length];f.life=1;f.s=(0.7+Math.random()*0.9)*st*snd().fl;f.sp.position.copy(p);const sp2=4+Math.random()*3;f.vx=-Math.sin(C.H)*sp2+C.vx*0.3;f.vz=Math.cos(C.H)*sp2+C.vz*0.3;f.vy=0.4;f.sp.visible=true;exLight.position.copy(p);exL=1.5*st});}
+let thrPrev=0,alsLevel=0,alsTimer=0;
+function fire(st){popSound(st);if(st>0.45)flame(st)}
+function alsUpdate(dt,rpm,kmh){
+  const live=state==='run'&&rpm>0.4&&kmh>18;
+  if(thrPrev>0.6&&C.thr<0.5&&live){alsLevel=1;alsTimer=0}
+  if(C.thr>0.5||!live)alsLevel=Math.max(0,alsLevel-dt*4);else alsLevel=Math.max(0,alsLevel-dt*0.5);
+  thrPrev=C.thr;
+  alsTimer-=dt;if(alsLevel>0.05&&C.thr<0.5&&alsTimer<=0){fire(0.35+Math.random()*0.65*alsLevel);alsTimer=0.035+Math.random()*0.11/(0.3+alsLevel)}
+  flames.forEach(f=>{if(f.life>0){f.life-=dt*6;f.sp.position.x+=f.vx*dt;f.sp.position.z+=f.vz*dt;f.sp.position.y+=f.vy*dt;const s=f.s*0.55*(1.2+(1-f.life)*1.4);f.sp.scale.set(s,s,1);f.sp.material.opacity=Math.max(0,f.life);if(f.life<=0)f.sp.visible=false}});
+  exL=Math.max(0,exL-dt*14);exLight.intensity=exL*(cond==='night'?3:1.2)}
 let last=performance.now(),mkT=0;const tmpV=new THREE.Vector3(),camLook=new THREE.Vector3();
 function frame(now){requestAnimationFrame(frame);pad();let dt=Math.min(0.05,(now-last)/1000);last=now;
   if(state==='count'){countdown-=dt;const c=Math.ceil(countdown);$('#msg').className='hud';$('#msg').style.opacity=1;$('#msg').textContent=countdown>0?c:'GO';if(countdown<=0){state='run';setTimeout(()=>$('#msg').style.opacity=0,700)}}
@@ -371,8 +402,11 @@ function frame(now){requestAnimationFrame(frame);pad();let dt=Math.min(0.05,(now
   $('#alt').textContent=`km/h · ${Math.round(400+C.y)} m · drift ${Math.round(ang)}°`;$('#hbI').style.opacity=C.hb?1:0.18;
   $('#time').textContent=fmt(state==='run'||state==='fin'?clock+pen:0);
   drawRadar();
-  if(ac&&gain){const f=40+rpm*190;osc1.frequency.setTargetAtTime(f,ac.currentTime,0.03);osc2.frequency.setTargetAtTime(f*0.5,ac.currentTime,0.03);gain.gain.setTargetAtTime(state==='run'||state==='count'?0.04+C.thr*0.07:0,ac.currentTime,0.1);
-    nGain.gain.setTargetAtTime(state==='run'&&kmh>8?clamp((Math.abs(C.vr)-2)/9,0,1)*0.09:0,ac.currentTime,0.05)}
+  alsUpdate(dt,rpm,kmh);
+  if(ac&&gain){const sd=snd(),f=(40+rpm*190)*sd.k,t=ac.currentTime;osc1.frequency.setTargetAtTime(f,t,0.03);osc2.frequency.setTargetAtTime(f*0.5,t,0.03);osc3.frequency.setTargetAtTime(f*sd.det,t,0.03);
+    eFilt.frequency.setTargetAtTime((350+rpm*1900)*sd.cut*(0.55+0.45*Math.max(C.thr,0.2)),t,0.05);lfo.frequency.setTargetAtTime(f*0.25,t,0.05);lfoG.gain.setTargetAtTime(sd.burble*(0.4+0.6*(1-C.thr)),t,0.05);
+    gain.gain.setTargetAtTime(state==='run'||state==='count'?0.05+C.thr*0.07:0,t,0.1);
+    nGain.gain.setTargetAtTime(state==='run'&&kmh>8?clamp((Math.abs(C.vr)-2)/9,0,1)*0.09:0,t,0.05)}
   R.render(scene,camMode===3?ocam:cam)}
 function poseCar(dt,now){
   const i=C.idx,tH=PY[i]+(PY[Math.min(i+1,PY.length-1)]-PY[Math.max(i-1,0)])/(2*ds)*C.along;C.y+=(tH-C.y)*Math.min(1,dt*12);
@@ -417,7 +451,7 @@ document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{goal=+b.dataset.
 $('#goBtn').onclick=()=>{voice=$('#voice').checked;sound=$('#sound').checked;applyCond();start()};
 $('#again').onclick=start;$('#menu').onclick=toMenu;
 
-window.HP={C,K,step,update,get state(){return state},set state(v){state=v},get HPS(){return HPS},get hpRes(){return hpRes},PX:()=>PX,PZ:()=>PZ,TX:()=>TX,TZ:()=>TZ,selectCar,start,resetWorld,setPar:v=>PAR=v,get PAR(){return PAR},ds,RAD,HW,get clock(){return clock}};
+window.HP={C,K,step,update,get state(){return state},set state(v){state=v},get HPS(){return HPS},get hpRes(){return hpRes},PX:()=>PX,PZ:()=>PZ,TX:()=>TX,TZ:()=>TZ,selectCar,start,resetWorld,fire,alsUpdate,flames,dbg:()=>flames.map(f=>[f.life.toFixed(2),f.sp.visible,f.sp.position.x.toFixed(0),f.sp.position.y.toFixed(0),f.sp.position.z.toFixed(0),f.s.toFixed(1)]).filter(a=>a[1]).concat([[C.x.toFixed(0),C.y.toFixed(0),C.z.toFixed(0)]]),setPar:v=>PAR=v,get PAR(){return PAR},ds,RAD,HW,get clock(){return clock}};
 pickCar(store.get('hp-car')||'imp');applyCond();resetWorld();placeAt(10);track();$('#load').remove();$('#start').hidden=false;requestAnimationFrame(frame);
 }
 </script>
