@@ -4,31 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
-<title>Handbrake Hero | Slide every hairpin</title>
-<meta name="description" content="Handbrake Hero is a fast, endless-hairpin rally game with 90s arcade handling. Brake late, yank the handbrake, and slide every corner.">
-<link rel="canonical" href="https://handbrakehero.com/">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Handbrake Hero">
-<meta property="og:url" content="https://handbrakehero.com/">
-<meta property="og:title" content="Handbrake Hero | Slide every hairpin">
-<meta property="og:description" content="An endless-hairpin rally game with 90s arcade handling. Brake late, yank the handbrake, slide every corner.">
-<meta property="og:image" content="https://handbrakehero.com/og-image.png">
-<meta property="og:image:type" content="image/png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Handbrake Hero logo in yellow and red italic type above a hairpin road and a U-turn warning sign.">
-<meta property="og:locale" content="en_AU">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Handbrake Hero | Slide every hairpin">
-<meta name="twitter:description" content="An endless-hairpin rally game with 90s arcade handling.">
-<meta name="twitter:image" content="https://handbrakehero.com/twitter-card.png">
-<meta name="twitter:image:alt" content="Handbrake Hero logo in yellow and red italic type above a hairpin road and a U-turn warning sign.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>Rally 90s Championship</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
 /* VOICE: 1990s arcade rally cabinet, loud and fast
@@ -135,7 +111,7 @@ const hemi=new THREE.HemisphereLight(0xcfe3ff,0x4a4a3a,0.85),sun=new THREE.Direc
 const SUNV=new THREE.Vector3(-0.5,0.7,0.5).normalize();
 
 // ================= surfaces & stages =================
-const SURF={d:{mu:.78,c:[.7,.54,.34]},l:{mu:.66,c:[.86,.74,.52]},g:{mu:.82,c:[.5,.48,.45]},b:{mu:1.04,c:[.27,.27,.29]}};
+const SURF={s:{mu:.8,c:[.86,.77,.6]},m:{mu:.72,c:[.3,.22,.14]},d:{mu:.78,c:[.62,.36,.24]},l:{mu:.66,c:[.86,.74,.52]},g:{mu:.82,c:[.5,.48,.45]},b:{mu:1.04,c:[.27,.27,.29]}};
 function freeSegs(rnd,total,o){const segs=[];let th=0,L=0;
   while(L<total){
     if(rnd()<o.straight){const l=o.smin+rnd()*(o.smax-o.smin);segs.push({len:l,k:0});L+=l;continue}
@@ -151,21 +127,34 @@ function mtnSegs(rnd,total){const segs=[];let L=0,x=0,dir=-1,east=true;const pus
     x+=(east?1:-1)*want;const R=14+rnd()*3;push(Math.PI*R,dir/R);segs[segs.length-1].hp=1;dir=-dir;east=!east}
   return segs}
 const bump=(s,s0,J)=>{const u=s-s0;return u<0||u>19?0:u<14?J*sstep(0,14,u):J*(1-sstep(14,19,u))};
+// plans are lists of [fraction of stage length, signed curvature (+ right, - left), tunnel?] or {hp:radius,dir} hairpins
+function mkPlan(len,items){let hpL=0,fs=0;items.forEach(it=>{if(it.hp)hpL+=Math.PI*it.hp;else fs+=it[0]});const mpf=(len-hpL)/fs,segs=[{len:GRID0,k:0}];
+  items.forEach(it=>{if(it.hp)segs.push({len:Math.PI*it.hp,k:it.dir/it.hp,hp:1});else segs.push({len:it[0]*mpf,k:it[1],tun:it[2]||0})});segs.push({len:RUNOUT+300,k:0});return segs}
+const fr=(s,len)=>(s-GRID0)/len;
 const STAGES=[
- {id:'desert',name:'DESERT',sub:'Dune Run',diff:1,len:1500,hw:7,seed:11,vmax:56,th0:0,sky:0xf0d9a8,fog:0xeed3a0,fogN:90,fogF:520,gA:[.87,.71,.45],gB:[.74,.5,.3],hill:7,deco:'desert',skill:.93,
-  plan:r=>freeSegs(r,2300,{lim:.9,lmin:110,lmax:260,rmin:120,rmax:280,straight:.15,smin:60,smax:170}),
-  surf:s=>(Math.floor(s/280)%3===1)?'l':'d',hwf:s=>7,
-  elev:s=>3*Math.sin(s/260)+2*Math.sin(s/117+1)+bump(s,560,.95)+bump(s,1050,.95)+bump(s,1500,.95)},
- {id:'forest',name:'FOREST',sub:'Pine Valley',diff:2,len:1300,hw:4.6,seed:23,vmax:50,th0:0,sky:0xa9c7e4,fog:0xb5cfe0,fogN:50,fogF:340,gA:[.2,.34,.16],gB:[.14,.27,.12],hill:12,deco:'pine',skill:.94,
-  plan:r=>{const s=freeSegs(r,2000,{lim:1.0,lmin:60,lmax:150,rmin:38,rmax:110,straight:.1,smin:40,smax:110});let L=0,i=0;while(i<s.length&&L<760)L+=s[i++].len;s.splice(i,0,{len:180,k:0,tun:1});return s},
-  surf:(s,t)=>t?'b':s<480?'b':((Math.floor(s/260)%3===2)?'b':'g'),hwf:s=>lerp(4.6,3.7,sstep(300,900,s)),
+ {id:'desert',name:'DESERT',sub:'Dune Run',diff:1,len:1500,hw:7,seed:11,vmax:56,th0:0,sky:0x5f9fee,fog:0xe6dcb8,fogN:120,fogF:600,gA:[.58,.6,.32],gB:[.76,.56,.36],hill:7,deco:'acacia',skill:.93,cpf:[.41,.74],
+  light:{hemi:0xfff0d0,hg:0x6a5a3a,hi:.9,sun:0xfff1d6,si:1.1,dir:[-.5,.7,.5]},peaks:{col:[.52,.5,.56],cap:null,n:9,h0:50,h1:110},town:'village',
+  banks:[[.28,.40,1,5],[.52,.62,-1,6],[.70,.80,1,7]],fence:[],crowd:[.22,.3,.55,.78],
+  plan(){return mkPlan(this.len,[[.09,0],[.06,1/340],[.05,0],[.08,-1/300],[.04,0],[.04,1/300],[.04,-1/280],[.03,0],[.12,1/240],[.04,0],[.05,-1/260],[.04,-1/200],[.03,0],[.05,1/240],[.05,-1/220],[.05,0],[.08,1/340],[.06,0]])},
+  surf:s=>{const f=fr(s,1500);return f<.18?'s':f<.55?'d':'s'},hwf:s=>7,
+  elev:s=>3*Math.sin(s/260)+2*Math.sin(s/117+1)+bump(s,640,.95)+bump(s,1050,.95)+bump(s,1390,.95)},
+ {id:'forest',name:'FOREST',sub:'Pine Valley',diff:2,len:1300,hw:4.6,seed:23,vmax:50,th0:0,sky:0x5b98e8,fog:0xaec6dc,fogN:60,fogF:400,gA:[.2,.34,.16],gB:[.56,.32,.22],hill:12,deco:'pine',skill:.94,cpf:[.4,.72],
+  light:{hemi:0xcfe3ff,hg:0x3a4a2a,hi:.85,sun:0xfff1d6,si:1.0,dir:[-.5,.7,.5]},peaks:{col:[.42,.52,.7],cap:[.95,.96,1],n:11,h0:90,h1:190},town:null,
+  banks:[[.12,.22,-1,6],[.50,.58,1,7],[.62,.72,-1,7]],fence:[[0,.14],[.8,1]],crowd:[.04,.3,.58,.7,.95],
+  plan(){return mkPlan(this.len,[[.06,0],[.05,-1/110],[.05,1/100],[.04,0],[.05,1/120],[.05,-1/110],[.04,1/130],[.04,0],[.09,1/450,1],[.04,0],[.06,-1/60],[.09,0],{hp:16,dir:1},[.05,0],[.05,-1/90],[.06,1/100],[.05,0],[.06,-1/150],[.06,1/140],[.07,0]])},
+  surf:(s,t)=>{if(t)return'b';const f=fr(s,1300);return f<.47?'b':f<.6?'d':f<.68?'b':f<.8?'d':'b'},hwf:s=>lerp(4.6,3.8,sstep(300,900,s)),
   elev:s=>6*Math.sin(s/190)+3*Math.sin(s/83)},
- {id:'mountain',name:'MOUNTAIN',sub:'Col des Lacets',diff:3,len:900,hw:4.2,seed:37,vmax:46,th0:Math.PI/2,sky:0x9fc3e8,fog:0xc4d6e6,fogN:60,fogF:420,gA:[.3,.4,.2],gB:[.46,.43,.4],hill:22,deco:'pine',skill:.95,
-  plan:r=>mtnSegs(r,1700),surf:s=>(s>620&&s<820)?'g':'b',hwf:s=>4.2,
-  elev:s=>s*.04+2*Math.sin(s/70)},
- {id:'lake',name:'LAKESIDE',sub:'Bonus Stage',diff:4,len:900,hw:3.4,seed:51,vmax:42,th0:0,sky:0x8fb4d8,fog:0xa8c4dc,fogN:40,fogF:300,gA:[.22,.36,.18],gB:[.4,.38,.34],hill:8,deco:'pine',skill:.98,water:1,
-  plan:r=>freeSegs(r,1500,{lim:1.4,lmin:35,lmax:90,rmin:16,rmax:34,straight:.07,smin:15,smax:40,tight:.18}),
-  surf:s=>s<180?'b':(Math.floor(s/200)%3===1?'l':'g'),hwf:s=>3.4,
+ {id:'mountain',name:'MOUNTAIN',sub:'Col des Lacets',diff:3,len:900,hw:4.2,seed:37,vmax:46,th0:0,sky:0x56a0ea,fog:0xc9d9e8,fogN:70,fogF:460,gA:[.27,.4,.21],gB:[.62,.38,.26],hill:20,deco:'pine',skill:.95,cpf:[.2,.62],
+  light:{hemi:0xcfe3ff,hg:0x4a3a2a,hi:.85,sun:0xfff1d6,si:1.0,dir:[-.5,.7,.5]},peaks:{col:[.5,.55,.68],cap:[.95,.96,1],n:10,h0:70,h1:150},town:'old',
+  banks:[[.22,.56,1,10],[.22,.56,-1,10],[.82,.9,1,6]],fence:[[.6,.72]],crowd:[.05,.35,.5,.66,.9],
+  plan(){return mkPlan(this.len,[[.06,0],[.07,1/200],[.09,-1/130],[.03,0],[.06,0,1],[.04,0],[.04,-1/60],[.05,1/80],[.04,-1/45],[.03,0],{hp:15,dir:-1},[.04,0],[.04,-1/60],[.04,1/55],[.07,-1/110],[.03,0],[.04,1/120],[.04,0],[.06,1/90],[.04,-1/55],[.04,1/55],[.03,0],{hp:14,dir:1},[.04,-1/100],[.04,0],[.07,0]])},
+  surf:()=>'b',hwf:s=>lerp(5.4,4.2,sstep(GRID0,GRID0+160,s)),
+  elev:s=>s*.02+4*Math.sin(s/140)},
+ {id:'lake',name:'LAKESIDE',sub:'Bonus Stage',diff:4,len:900,hw:3.4,seed:51,vmax:42,th0:0,sky:0x6e5c9a,fog:0x9c6a58,fogN:40,fogF:330,gA:[.4,.34,.15],gB:[.36,.24,.14],hill:8,deco:'autumn',skill:.98,cpf:[.35,.7],water:1,dusk:1,
+  light:{hemi:0x9a82c0,hg:0x6a4020,hi:.8,sun:0xffa860,si:.95,dir:[-.8,.28,.4]},peaks:{col:[.3,.22,.38],cap:null,n:8,h0:40,h1:80},town:null,
+  banks:[[.58,.66,1,4]],fence:[[.5,1]],crowd:[.03,.4,.97],
+  plan(){const it=[[.05,0]];[[1,45],[-1,55],[1,40],[-1,35],[1,60],[1,30],[-1,70],[1,40],[-1,30],[1,45],[-1,50],[1,28],[-1,40],[1,55],[-1,35],[1,30]].forEach(([sg,R])=>{it.push([R*.85/900,sg/R]);it.push([.016,0])});it.push([.06,0]);return mkPlan(this.len,it)},
+  surf:()=>'m',hwf:s=>3.4,
   elev:s=>3*Math.sin(s/150)+1.5*Math.sin(s/55)}
 ];
 const GRID0=70,RUNOUT=110;
@@ -196,7 +185,7 @@ function buildStage(si){
   const y0=PY[0];minY=1e9;for(let i=0;i<N;i++){PY[i]-=y0;minY=Math.min(minY,PY[i])}
   PLAT=Math.max(...HWA)+2.8;HASH=new Map();HASH2=new Map();
   for(let i=0;i<N;i++){const a=hk(Math.floor(PX[i]/HC),Math.floor(PZ[i]/HC));let b=HASH.get(a);if(!b)HASH.set(a,b=[]);b.push(i);if(i%6===0){const a2=hk(Math.floor(PX[i]/100),Math.floor(PZ[i]/100));let b2=HASH2.get(a2);if(!b2)HASH2.set(a2,b2=[]);b2.push(i)}}
-  START_S=GRID0;FIN_S=GRID0+ST.len;CPS=[GRID0+ST.len/3,GRID0+ST.len*2/3];
+  START_S=GRID0;FIN_S=GRID0+ST.len;CPS=[GRID0+ST.len*ST.cpf[0],GRID0+ST.len*ST.cpf[1]];{const ti=TUN.indexOf(1);if(ti>=0)CPS[0]=ti*ds-3}
   // speed profile (m/s) for a perfect driver; AI scale it by skill
   PROF=new Float32Array(N);for(let i=0;i<N;i++){let kk=0;for(let j=0;j<5&&i+j<N;j++)kk=Math.max(kk,Math.abs(KC[i+j]));PROF[i]=Math.min(ST.vmax,Math.sqrt(SURF[SFA[i]].mu*g*.95/Math.max(kk,1e-4)))}
   for(let i=N-2;i>=0;i--)PROF[i]=Math.min(PROF[i],Math.sqrt(PROF[i+1]**2+2*9*ds));
@@ -230,7 +219,50 @@ function buildStage(si){
     const lamps=[];for(let i=a;i<=b;i+=6)lamps.push(i);const lm=new THREE.InstancedMesh(new THREE.BoxGeometry(.5,.12,1.6),new THREE.MeshBasicMaterial({color:0xffc060}),lamps.length);
     lamps.forEach((i,j)=>{dummy.position.set(PX[i],PY[i]+5.1,PZ[i]);dummy.rotation.set(0,Math.atan2(TX[i],-TZ[i]),0);dummy.updateMatrix();lm.setMatrixAt(j,dummy.matrix)});world.add(lm)}}
   if(ST.water){waterM=new THREE.Mesh(new THREE.PlaneGeometry(2600,2600).rotateX(-Math.PI/2),new THREE.MeshLambertMaterial({color:0x2f78a8,transparent:true,opacity:.9}));waterM.position.y=minY-1.4;waterM.userData.keep=0;world.add(waterM)}else waterM=null;
-  scene.background=new THREE.Color(ST.sky);scene.fog=new THREE.Fog(ST.fog,ST.fogN,ST.fogF);hemi.color.set(ST.id==='desert'?0xfff0d0:0xcfe3ff)}
+  decorate();
+  scene.background=ST.dusk?duskTex():new THREE.Color(ST.sky);scene.fog=new THREE.Fog(ST.fog,ST.fogN,ST.fogF);const L=ST.light;hemi.color.set(L.hemi);hemi.groundColor.set(L.hg);hemi.intensity=L.hi;sun.color.set(L.sun);sun.intensity=L.si;SUNV.set(...L.dir).normalize()}
+function duskTex(){const c=document.createElement('canvas');c.width=4;c.height=256;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#1f2a5c');g.addColorStop(.45,'#7a4f8e');g.addColorStop(.75,'#e0804a');g.addColorStop(1,'#f0b060');x.fillStyle=g;x.fillRect(0,0,4,256);return new THREE.CanvasTexture(c)}
+const signCache={};
+function signMat(col,dir,hp){const key=col+dir+hp;if(signCache[key])return signCache[key];const c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d');x.fillStyle=col;x.fillRect(0,0,96,96);x.strokeStyle='#fff';x.lineWidth=5;x.strokeRect(3,3,90,90);
+  const ink=col==='#1f6fe0'?'#fff':'#111';x.strokeStyle=ink;x.fillStyle=ink;x.lineWidth=10;x.lineCap='round';x.lineJoin='round';x.beginPath();
+  if(hp){x.moveTo(48-dir*14,84);x.lineTo(48-dir*14,40);x.arc(48,40,14,Math.PI,0,dir<0?true:false);x.lineTo(48+dir*14,52);x.stroke();x.beginPath();x.moveTo(48+dir*14-12,54);x.lineTo(48+dir*14+12,54);x.lineTo(48+dir*14,70);x.fill()}
+  else{x.moveTo(48-dir*10,84);x.lineTo(48-dir*10,54);x.lineTo(48+dir*14,30);x.stroke();x.beginPath();x.moveTo(48+dir*14+dir*2,18);x.lineTo(48+dir*14-dir*18,30);x.lineTo(48+dir*14+dir*8,46);x.fill()}
+  return signCache[key]=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)})}
+function boxes(list){if(!list.length)return;const im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0xffffff}),list.length);
+  list.forEach((b,k)=>{dummy.position.set(b[0],b[1]+b[4]/2,b[2]);dummy.rotation.set(0,b[6],0);dummy.scale.set(b[3],b[4],b[5]);dummy.updateMatrix();im.setMatrixAt(k,dummy.matrix);im.setColorAt(k,new THREE.Color(b[7]))});dummy.scale.set(1,1,1);world.add(im)}
+let backdrop=null;
+function decorate(){
+  const rnd=rng(ST.seed*7+1),side=(i,sd,off)=>[PX[i]-TZ[i]*sd*off,PZ[i]+TX[i]*sd*off],ang=i=>Math.atan2(TX[i],-TZ[i]),at=f=>Math.round((GRID0+f*ST.len)/ds);
+  // pace-note signs: colour shows how hard the corner is
+  {let inC=false,cs=0,pk=0,lo=0,lastSign=-99;for(let i=Math.floor(GRID0/ds)-20;i<N-4;i++){const k=Math.abs(KC[i]);
+    if(k>1/170){if(!inC){inC=true;cs=i;pk=0}if(k>pk)pk=k;lo=0}else if(inC&&++lo>4){inC=false;const Rm=1/pk,sgn=Math.sign(KC[Math.round((cs+i)/2)]);const si=cs-30;
+      if(si>8&&si-lastSign>18){lastSign=si;const col=Rm>95?'#1f6fe0':Rm>48?'#ffd400':Rm>26?'#ff7a1a':'#e02020',[bx,bz]=side(si,1,HWA[si]+1.9);
+        const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.7,1.7),signMat(col,sgn,Rm<20?1:0));sg.position.set(bx,PY[si]+2.2,bz);sg.rotation.y=Math.atan2(-TX[si],-TZ[si]);world.add(sg);const pl=new THREE.Mesh(new THREE.BoxGeometry(.1,2.4,.1),postW);pl.position.set(bx,PY[si]+1.2,bz);world.add(pl)}}}}
+  // start and finish areas: hoardings, banner poles, spectators
+  const BC=[0xd7192a,0x1b8a3a,0xff8a1a,0x1f6fe0,0xf2f2f2,0xffd400],bl=[],crowd=[];
+  const area=(s0,dirn)=>{for(let q=0;q<10;q++){const i=Math.round((s0+dirn*q*7)/ds);if(i<1||i>=N-1)continue;for(const sd of[-1,1]){const[x,z]=side(i,sd,HWA[i]+2.4);bl.push([x,PY[i]+.2,z,3.4,1.1,.2,ang(i)+Math.PI/2,BC[(q+(sd>0?2:0))%6]]);const[x2,z2]=side(i,sd,HWA[i]+4.6);bl.push([x2,PY[i]+.1,z2,.12,6,.12,0,0xeeeeee]);bl.push([x2,PY[i]+2.6,z2,.2,3.6,1.1,ang(i),BC[(q*2+(sd>0?1:0))%6]])}}};
+  area(GRID0+2,-1);area(FIN_S-8,1);
+  const shirt=[0xffd400,0xd7192a,0xffffff,0x1f6fe0,0x1b8a3a,0xff8a1a];
+  const cluster=(i,sd,n)=>{for(let q=0;q<n;q++){const[x,z]=side(Math.min(N-2,Math.max(1,i+Math.round((rnd()-.5)*10))),sd,HWA[i]+3.2+rnd()*2.6);crowd.push([x,PY[i]+.1,z,.5,1.7,.35,rnd()*6,shirt[(rnd()*6)|0]])}};
+  [GRID0,FIN_S].forEach(s0=>{const i=Math.round(s0/ds);cluster(i,1,16);cluster(i,-1,16);cluster(i+8,1,10);cluster(i-8,-1,10)});
+  (ST.crowd||[]).forEach(f=>{const i=at(f);cluster(i,rnd()<.5?1:-1,9)});
+  // town (village / old town) around the start and finish
+  const bld=[];if(ST.town){const pal=ST.town==='village'?[0xe8d8b0,0x6fb090,0x4fa0a0,0xb4583c,0xd8c090]:[0xd8c090,0xb89868,0xc8a878,0xa07850,0xe0d0a8],roof=ST.town==='village'?[0x8a8a90,0x9a4a30]:[0xa8503a,0x8a4030];
+    [[GRID0-4,-1,12],[FIN_S-10,1,12]].forEach(([s0,dirn,n])=>{for(let q=0;q<n;q++){const i=Math.round((s0+dirn*q*13)/ds);if(i<2||i>=N-2)continue;for(const sd of[-1,1]){const off=HWA[i]+(ST.town==='old'?8:11)+rnd()*5,[x,z]=side(i,sd,off),h=ST.town==='old'?9+rnd()*8:3.5+rnd()*2.5,w=9+rnd()*4,c=pal[(rnd()*pal.length)|0];
+      bld.push([x,PY[i]-.2,z,w,h,8,ang(i),c]);bld.push([x,PY[i]-.2+h,z,w+.6,.5,8.6,ang(i),roof[(rnd()*roof.length)|0]])}}});
+    if(ST.town==='old'){const i=Math.round((GRID0+420)/ds),[x,z]=side(Math.min(i,N-2),-1,16),y=PY[Math.min(i,N-2)];bld.push([x,y-.2,z,7,26,7,0,0xb85a3c]);const sp=new THREE.Mesh(new THREE.ConeGeometry(5.2,11,4),new THREE.MeshLambertMaterial({color:0x7a3a2a}));sp.position.set(x,y+31,z);sp.rotation.y=.78;world.add(sp)}}
+  // rock banks and cuttings
+  const rk=[];(ST.banks||[]).forEach(([f0,f1,sd,h])=>{for(let s0=GRID0+f0*ST.len;s0<GRID0+f1*ST.len;s0+=6){const i=Math.round(s0/ds);if(i<1||i>=N-1)continue;const[x,z]=side(i,sd,HWA[i]+3+rnd()*2.5);rk.push([x,PY[i]-.6,z,2.4+rnd()*2.6,h*(.5+rnd()*.7),2.6+rnd()*2.2,rnd()*3,0])}});
+  if(rk.length){const im=new THREE.InstancedMesh(rockG,new THREE.MeshLambertMaterial({color:0xffffff}),rk.length),rc=ST.id==='desert'?[.66,.42,.28]:ST.id==='mountain'?[.66,.4,.3]:[.62,.36,.26];
+    rk.forEach((q,k)=>{dummy.position.set(q[0],q[1]+q[4]*.4,q[2]);dummy.rotation.set(0,q[6],0);dummy.scale.set(q[3],q[4],q[5]);dummy.updateMatrix();im.setMatrixAt(k,dummy.matrix);const v=.85+rnd()*.3;im.setColorAt(k,new THREE.Color(rc[0]*v,rc[1]*v,rc[2]*v))});dummy.scale.set(1,1,1);world.add(im)}
+  // post-and-rail fences
+  const fp=[],fr2=[];(ST.fence||[]).forEach(([f0,f1])=>{for(let s0=GRID0+f0*ST.len;s0<GRID0+f1*ST.len;s0+=5){const i=Math.round(s0/ds);if(i<1||i>=N-2)continue;for(const sd of[-1,1]){const[x,z]=side(i,sd,HWA[i]+1.9);fp.push([x,PY[i],z,.14,1.15,.14,0,0x7a5a3a]);fr2.push([x+(PX[i+2]-PX[i])/2*0,PY[i]+.55,z,.08,.1,5,-ang(i)+Math.PI,0x8a6a4a]);const xm=(x+side(i+2,sd,HWA[i]+1.9)[0])/2,zm=(z+side(i+2,sd,HWA[i]+1.9)[1])/2;fr2[fr2.length-1][0]=xm;fr2[fr2.length-1][2]=zm;fr2[fr2.length-1][6]=Math.atan2(PX[i+2]-PX[i],-(PZ[i+2]-PZ[i]))}}});
+  boxes(bl);boxes(crowd);boxes(bld);boxes(fp);boxes(fr2);
+  // distant peaks, follows the camera
+  const pk=ST.peaks,grp=new THREE.Group();for(let q=0;q<pk.n;q++){const a=q/pk.n*Math.PI*2+rnd()*.3,h=pk.h0+rnd()*(pk.h1-pk.h0),w=h*(1.1+rnd()*.7),d=850+rnd()*150;
+    const m=new THREE.Mesh(new THREE.ConeGeometry(w,h,6),new THREE.MeshBasicMaterial({color:new THREE.Color(...pk.col),fog:false}));m.position.set(Math.cos(a)*d,h/2-8,Math.sin(a)*d);grp.add(m);
+    if(pk.cap){const c=new THREE.Mesh(new THREE.ConeGeometry(w*.36,h*.36,6),new THREE.MeshBasicMaterial({color:new THREE.Color(...pk.cap),fog:false}));c.position.set(m.position.x,h*.82-8,m.position.z);grp.add(c)}}
+  world.add(grp);backdrop=grp}
 let tNd=0,tSg=0;
 function terr(x,z){const cx=Math.floor(x/HC),cz=Math.floor(z/HC);let sw=0,sh=0,nd=1e9,yn=0,kn=0;
   for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){const a=HASH.get(hk(cx+i,cz+j));if(!a)continue;for(let q=0;q<a.length;q++){const k=a[q],dx=PX[k]-x,dz=PZ[k]-z,d2=dx*dx+dz*dz;if(d2>2500)continue;const d=Math.sqrt(d2);if(d<nd){nd=d;yn=PY[k];kn=k}const dd=Math.max(d-PLAT,0)+.3,w=1/(dd*dd);sw+=w;sh+=w*PY[k]}}
@@ -238,12 +270,12 @@ function terr(x,z){const cx=Math.floor(x/HC),cz=Math.floor(z/HC);let sw=0,sh=0,n
   const sg=(x-PX[kn])*-TZ[kn]+(z-PZ[kn])*TX[kn]>0?1:-1;tSg=sg;
   const nz=Math.sin(x*.031+z*.017)+Math.sin(x*.067-z*.043+1.3)*.55+Math.sin(z*.11+x*.05)*.28+Math.sin(x*.013-z*.009+4)*1.6;
   let base=yn+nz*ST.hill*.35*sstep(PLAT+3,PLAT+40,nd);
-  if(ST.water)base+=sg>0?-Math.min(.13*Math.max(nd-PLAT-1,0),40):Math.min(.12*Math.max(nd-PLAT,0),24);
+  if(ST.water)base+=sg<0?-Math.min(.13*Math.max(nd-PLAT-1,0),40):Math.min(.12*Math.max(nd-PLAT,0),24);
   const wb=1/(42*42);let h=(sh+base*wb)/(sw+wb);tNd=nd;if(nd<PLAT+.6)h-=.1*(1-sstep(PLAT-.6,PLAT+.6,nd));return h}
 const CS=80,CELLS=4,NV=CS/CELLS+1;
 const coneG=new THREE.ConeGeometry(1,1,7);coneG.translate(0,.5,0);coneG.userData={};const rockG=new THREE.DodecahedronGeometry(1,0),cactG=new THREE.CylinderGeometry(.3,.35,1,6).translate(0,.5,0);
 [coneG,rockG,cactG].forEach(g=>g.userData.keep=1);
-const matW=new THREE.MeshLambertMaterial({color:0xffffff});
+const matW=new THREE.MeshLambertMaterial({color:0xffffff}),canopyG=new THREE.CylinderGeometry(2.6,2.2,.7,9),blobG=new THREE.IcosahedronGeometry(1,0);canopyG.userData.keep=1;blobG.userData.keep=1;
 function buildChunk(cx,cz){const x0=cx*CS,z0=cz*CS,pos=new Float32Array(NV*NV*3),col=new Float32Array(NV*NV*3),ndA=new Float32Array(NV*NV),idx=[];
   for(let j=0;j<NV;j++)for(let i=0;i<NV;i++){const x=x0+i*CELLS,z=z0+j*CELLS,y=terr(x,z),k=j*NV+i;pos[k*3]=x;pos[k*3+1]=y;pos[k*3+2]=z;ndA[k]=tNd}
   for(let j=0;j<NV-1;j++)for(let i=0;i<NV-1;i++){const a=j*NV+i;idx.push(a,a+NV,a+1,a+1,a+NV,a+NV+1)}
@@ -254,16 +286,21 @@ function buildChunk(cx,cz){const x0=cx*CS,z0=cz*CS,pos=new Float32Array(NV*NV*3)
     c=mix(c,SURF[ST.surf(0,0)].c.map(a=>a*.9),1-sstep(PLAT-.3,PLAT+2.2,nd));col[k*3]=c[0];col[k*3+1]=c[1];col[k*3+2]=c[2]}
   ge.setAttribute('color',new THREE.BufferAttribute(col,3));const grp=new THREE.Group();grp.add(new THREE.Mesh(ge,terrMat));
   let s=(Math.abs(cx*73856093^cz*19349663)%2147483646)+1;const r=()=>(s=(s*16807)%2147483647)/2147483647,pl=[];
-  const want=ST.deco==='desert'?26:80;
+  const want=ST.deco==='acacia'?40:80;
   for(let n=0;n<want*2;n++){const x=x0+r()*CS,z=z0+r()*CS,y=terr(x,z),nd=tNd;if(nd<PLAT+2.5||nd>260)continue;
     const i=clamp(Math.round((x-x0)/CELLS),0,NV-1),j=clamp(Math.round((z-z0)/CELLS),0,NV-1);if(nor[(j*NV+i)*3+1]<.72)continue;if(ST.water&&y<minY-1.2)continue;
-    if(ST.deco==='pine'&&(y-minY>(ST.id==='mountain'?150:80)&&r()<.6))continue;pl.push([x,y-.2,z,r(),r(),r()])}
-  if(pl.length){if(ST.deco==='desert'){const rk=pl.filter(q=>q[3]<.6),cc=pl.filter(q=>q[3]>=.6&&q[3]<.8);
-      if(rk.length){const im=new THREE.InstancedMesh(rockG,matW,rk.length);rk.forEach((q,k)=>{dummy.position.set(q[0],q[1]+.3,q[2]);dummy.rotation.set(q[4]*3,q[5]*6,0);const sc=.5+q[4]*2.2;dummy.scale.set(sc*1.3,sc*.8,sc);dummy.updateMatrix();im.setMatrixAt(k,dummy.matrix);im.setColorAt(k,new THREE.Color().setRGB(.55+q[5]*.15,.38+q[5]*.1,.25))});dummy.scale.set(1,1,1);grp.add(im)}
-      if(cc.length){const im=new THREE.InstancedMesh(cactG,matW,cc.length);cc.forEach((q,k)=>{dummy.position.set(q[0],q[1],q[2]);dummy.rotation.set(0,0,0);dummy.scale.set(1,2+q[4]*3,1);dummy.updateMatrix();im.setMatrixAt(k,dummy.matrix);im.setColorAt(k,new THREE.Color(.2,.42,.2))});dummy.scale.set(1,1,1);grp.add(im)}}
-    else{const im=new THREE.InstancedMesh(coneG,matW,pl.length),im2=new THREE.InstancedMesh(coneG,matW,pl.length);pl.forEach((q,k)=>{const w=1.5+q[3]*1.4,h=6+q[4]*8,v=.7+q[5]*.5,c=new THREE.Color(.09*v,.24*v,.12*v);
-        dummy.position.set(q[0],q[1],q[2]);dummy.rotation.set(0,q[5]*6,0);dummy.scale.set(w,h,w);dummy.updateMatrix();im.setMatrixAt(k,dummy.matrix);im.setColorAt(k,c);
-        dummy.position.set(q[0],q[1]+h*.45,q[2]);dummy.scale.set(w*.72,h*.7,w*.72);dummy.updateMatrix();im2.setMatrixAt(k,dummy.matrix);im2.setColorAt(k,c)});dummy.scale.set(1,1,1);grp.add(im,im2)}}
+    if(ST.deco!=='acacia'&&(y-minY>(ST.id==='mountain'?150:80)&&r()<.6))continue;pl.push([x,y-.2,z,r(),r(),r()])}
+  if(pl.length){const mk=(g,list,fn)=>{if(!list.length)return;const im=new THREE.InstancedMesh(g,matW,list.length);list.forEach((q,k)=>{fn(q);dummy.updateMatrix();im.setMatrixAt(k,dummy.matrix);im.setColorAt(k,fn.col(q))});dummy.scale.set(1,1,1);grp.add(im)};
+    const F=(g,pos,col)=>{const f=q=>pos(q);f.col=col;return f};
+    if(ST.deco==='acacia'){const rkL=pl.filter(q=>q[3]<.4),ac=pl.filter(q=>q[3]>=.4&&q[3]<.72);
+      mk(rockG,rkL,F(0,q=>{dummy.position.set(q[0],q[1]+.3,q[2]);dummy.rotation.set(q[4]*3,q[5]*6,0);const sc=.5+q[4]*2;dummy.scale.set(sc*1.3,sc*.8,sc)},q=>new THREE.Color(.55+q[5]*.15,.4+q[5]*.1,.28)));
+      mk(cactG,ac,F(0,q=>{dummy.position.set(q[0],q[1],q[2]);dummy.rotation.set(0,0,0);dummy.scale.set(1.1,3.4+q[4]*2,1.1)},q=>new THREE.Color(.3,.22,.14)));
+      mk(canopyG,ac,F(0,q=>{dummy.position.set(q[0],q[1]+3.6+q[4]*2,q[2]);dummy.rotation.set(0,q[5]*6,0);const w=1.1+q[3]*.8;dummy.scale.set(w,1,w)},q=>new THREE.Color(.28+q[5]*.08,.4+q[5]*.08,.16)))}
+    else{const broad=ST.deco==='autumn'?pl.filter(q=>q[3]<.68):[],pines=ST.deco==='autumn'?pl.filter(q=>q[3]>=.68):pl,AU=[[.9,.5,.1],[.85,.65,.15],[.7,.3,.1],[.6,.25,.08],[.92,.78,.25]];
+      mk(coneG,pines,F(0,q=>{const w=1.5+q[3]*1.4,h=6+q[4]*8;dummy.position.set(q[0],q[1],q[2]);dummy.rotation.set(0,q[5]*6,0);dummy.scale.set(w,h,w)},q=>{const v=.7+q[5]*.5;return new THREE.Color(.09*v,.24*v,.12*v)}));
+      mk(coneG,pines,F(0,q=>{const w=1.5+q[3]*1.4,h=6+q[4]*8;dummy.position.set(q[0],q[1]+h*.45,q[2]);dummy.rotation.set(0,q[5]*6,0);dummy.scale.set(w*.72,h*.7,w*.72)},q=>{const v=.7+q[5]*.5;return new THREE.Color(.09*v,.24*v,.12*v)}));
+      mk(cactG,broad,F(0,q=>{dummy.position.set(q[0],q[1],q[2]);dummy.rotation.set(0,0,0);dummy.scale.set(1.3,3+q[4]*2,1.3)},q=>new THREE.Color(.28,.2,.12)));
+      mk(blobG,broad,F(0,q=>{const w=2.4+q[3]*2.2;dummy.position.set(q[0],q[1]+4+q[4]*2,q[2]);dummy.rotation.set(0,q[5]*6,0);dummy.scale.set(w,w*1.1,w)},q=>{const c=AU[(q[5]*AU.length)|0];return new THREE.Color(c[0],c[1],c[2])}))}}
   scene.add(grp);return grp}
 function ensureChunks(px,pz,budget,rad){const cx=Math.floor(px/CS),cz=Math.floor(pz/CS);let built=0;rad=rad||3;
   for(let d=0;d<=rad;d++)for(let i=-d;i<=d;i++)for(let j=-d;j<=d;j++){if(Math.max(Math.abs(i),Math.abs(j))!==d)continue;const k=(cx+i)+','+(cz+j);if(chunks.has(k))continue;if(built>=budget)return;chunks.set(k,buildChunk(cx+i,cz+j));built++}
@@ -381,7 +418,7 @@ const defaultOrder=()=>{const o=[];for(let i=0;i<NAI;i++)o.push(i);o.push('P');r
 function newGame(){GS.practice=false;GS.mode='load';GS.stage=0;GS.place=15;GS.score=0;GS.total=0;GS.passes=0;GS.res=[];GS.unlocked=false;GS.champion=false;GS.over=false;GS.rec=[];GS.events=[];
   GS.order=defaultOrder();ensureAI();applyPhys();audioStart();if(ac&&ac.state==='suspended')ac.resume();startStage(0)}
 function startPractice(si){GS.practice=true;GS.stage=si;GS.place=15;GS.score=0;GS.total=0;GS.passes=0;GS.res=[];GS.rec=[];GS.events=[];GS.order=defaultOrder();ensureAI();applyPhys();audioStart();if(ac&&ac.state==='suspended')ac.resume();startStage(si)}
-function practiceMenu(){GS.mode='title';showCard(`<div class="in"><h2>PRACTICE</h2><h1>Select stage</h1><p style="margin-bottom:4px">No time limit. Rivals still start ahead of you. Your best times are saved.</p>${STAGES.map((st,i)=>{const b=parseFloat(store.get('r90-best-'+st.id));return `<button class="stb" data-st="${i}"><b>${i===3?'Bonus':i+1} · ${st.name}</b> · ${st.sub}<span class="stars">${stars(st.diff)}</span><br><small>${(st.len/1000).toFixed(2)} km · best ${b?fmt(b):'none yet'}</small></button>`}).join('')}<div class="row"><button id="bk">Back</button></div></div>`);card.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>startPractice(+b.dataset.st));$('#bk').onclick=title;card.querySelector('[data-st]').focus()}
+function practiceMenu(){GS.mode='title';showCard(`<div class="in"><h2>PRACTICE</h2><h1>Select stage</h1><p style="margin-bottom:4px">No time limit. Rivals still start ahead of you. Your best times are saved.</p>${STAGES.map((st,i)=>{const b=parseFloat(store.get('r90-best-'+st.id)),lk=i===3&&store.get('r90-lake')!=='1';if(lk)return `<button class="stb" disabled style="opacity:.45"><b>Bonus · LOCKED</b> · Win the Mountain stage in Championship to unlock<br><small>&nbsp;</small></button>`;return `<button class="stb" data-st="${i}"><b>${i===3?'Bonus':i+1} · ${st.name}</b> · ${st.sub}<span class="stars">${stars(st.diff)}</span><br><small>${(st.len/1000).toFixed(2)} km · best ${b?fmt(b):'none yet'}</small></button>`}).join('')}<div class="row"><button id="bk">Back</button></div></div>`);card.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>startPractice(+b.dataset.st));$('#bk').onclick=title;card.querySelector('[data-st]').focus()}
 function quitToTitle(){GS.timers.length=0;document.body.classList.remove('playing');$('#msg').style.opacity=0;$('#banner').style.display='none';$('#skip').style.display='none';title()}
 function setupGrid(){GS.order.forEach((id,j)=>{const row=j>>1,s=START_S-row*9-(j&1)*4.5,lat=(j&1?1:-1)*Math.min(1.7,HWA[0]*.42);
     if(id==='P'){const p=pathAt(s),nx=-p.tz,nz=p.tx;Object.assign(C,{x:p.x+nx*lat,z:p.z+nz*lat,y:p.y,H:Math.atan2(p.tx,-p.tz),vx:0,vz:0,w:0,steer:0,idx:p.k,vy:0,air:false,pitch:0,roll:0,thr:0});track();camYaw=C.H}
@@ -413,7 +450,7 @@ function finishStage(){
   flash(place===1?'1ST PLACE!':'FINISH<br><small>'+place+ord(place)+' PLACE</small>',2400,'y');
   after(3.2,()=>{const r=GS.res[GS.res.length-1];GS.mode='results';
     const lastStage=GS.stage===3||(GS.stage===2&&place!==1);
-    if(GS.stage===2&&place===1)GS.unlocked=true;
+    if(GS.stage===2&&place===1){GS.unlocked=true;store.set('r90-lake','1')}
     showCard(`<div class="in"><h2>STAGE ${GS.stage+1} COMPLETE</h2><h1>${place}${ord(place)} place</h1><table><tr><td>Started</td><td>${r.prev}${ord(r.prev)}</td></tr><tr><td>Cars passed</td><td>${r.passes}</td></tr><tr><td>Stage time</td><td>${fmt(r.t)}</td></tr><tr><td>Time bonus</td><td>${Math.max(0,Math.round(tl*40))}</td></tr><tr><td>Score</td><td>${GS.score}</td></tr></table>
       ${GS.stage===2&&place===1?'<p><b style="color:var(--yel)">FIRST PLACE! BONUS STAGE UNLOCKED: LAKESIDE</b></p>':GS.stage===2?'<p>You needed 1st to unlock the bonus stage.</p>':''}<div class="row"><button class="go" id="nx">${lastStage?'Finish':'Next stage'}</button></div></div>`);
     $('#nx').onclick=()=>{hideCard();if(lastStage)endGame();else startStage(GS.stage+1)};$('#nx').focus()})}
@@ -448,11 +485,11 @@ function replayTick(dt){const c=RP.clips[RP.ci];if(!c)return;RP.t+=dt;if(RP.t>c.
   else if(RP.cam===1){if(!RP.anchor){const ahead=RP.t+1.2,f2=replayFrame(RP.rec,Math.min(ahead,c.t1));RP.anchor=[f2[1]+(-Math.cos(f2[3]))*6*(RP.ci%2?1:-1),f2[2]+(-Math.sin(f2[3]))*6*(RP.ci%2?1:-1)]}cx=RP.anchor[0];cz=RP.anchor[1];cy=terrY(cx,cz)+1.6}
   else{cx=px-fx*14;cz=pz-fz*14;cy=py+16}
   cam.position.set(cx,cy,cz);cam.lookAt(px,py+1,pz);const wf=64;if(cam.fov!==wf){cam.fov=wf;cam.updateProjectionMatrix()}
-  const tf=tunnelFactor(Math.floor(ST?pathIdx(px,pz):0));lightFor(tf);sun.position.set(px+SUNV.x*300,py+SUNV.y*300,pz+SUNV.z*300);sun.target.position.set(px,py,pz);sun.target.updateMatrixWorld();if(waterM){waterM.position.x=px;waterM.position.z=pz}}
+  const tf=tunnelFactor(Math.floor(ST?pathIdx(px,pz):0));lightFor(tf);sun.position.set(px+SUNV.x*300,py+SUNV.y*300,pz+SUNV.z*300);sun.target.position.set(px,py,pz);sun.target.updateMatrixWorld();if(waterM){waterM.position.x=px;waterM.position.z=pz}if(backdrop)backdrop.position.set(cam.position.x,minY-10,cam.position.z)}
 function terrY(x,z){const t=terr(x,z);const nd=tNd;return nd<PLAT?Math.max(t,0)+0:t}
 function pathIdx(x,z){let bi=0,bd=1e18;for(let i=0;i<N;i+=3){const d=(PX[i]-x)**2+(PZ[i]-z)**2;if(d<bd){bd=d;bi=i}}return bi}
 function tunnelFactor(i){if(!tunRange)return 0;const[a,b]=tunRange;return sstep(a-6,a+4,i)*(1-sstep(b-4,b+6,i))}
-function lightFor(tf){const day=1;hemi.intensity=.85*(1-.6*tf);sun.intensity=1.0*(1-.9*tf);head.intensity=tf*4.5;scene.fog.far=tf>.5?90:ST.fogF;scene.fog.near=tf>.5?10:ST.fogN}
+function lightFor(tf){const L=ST.light;hemi.intensity=L.hi*(1-.6*tf);sun.intensity=L.si*(1-.9*tf);head.intensity=tf*4.5;scene.fog.far=tf>.5?90:ST.fogF;scene.fog.near=tf>.5?10:ST.fogN}
 
 // ---------- high scores ----------
 function loadHS(){let h=null;try{h=JSON.parse(store.get('r90-hs')||'null')}catch(e){}if(!h||!h.length)h=[['CMR',81250,1],['TMK',74000,1],['JKK',68900,1],['CSZ',60500,2],['DAU',52000,3],['BTH',44000,4],['FDL',38000,5],['KEN',31000,7],['MSK',24000,9],['AAA',16000,12]];return h}
@@ -478,7 +515,9 @@ document.head.insertAdjacentHTML('beforeend','<style>body.touch .konly{display:n
 function autoDrive(){const sk=AUTO.skill||.9,s=C.s,v=Math.max(C.vf,0.1),L=7+v*.55,p=pathAt(s+L),nx=-p.tz,nz=p.tx,tx=p.x+nx*(AUTO.lane||0),tz=p.z+nz*(AUTO.lane||0);
   const want=Math.atan2(tx-C.x,-(tz-C.z)),e=wrapA(want-C.H),ms=MS/(1+Math.abs(C.vf)/20);let ax=clamp(e*1.3/Math.max(ms,.05)*.6,-1,1);
   const vt=Math.min(PROF[Math.min(Math.floor((s+v*.5)/ds),N-1)],PROF[Math.min(Math.floor((s+v*1.2+8)/ds),N-1)])*sk;
-  return{up:v<vt?1:0,dn:v>vt*1.06,hb:false,ax}}
+  if(Math.abs(C.vf)<2&&GS.mode==='run'){AUTO._st=(AUTO._st||0)+1/60}else if(Math.abs(C.vf)>6)AUTO._st=0;
+  if((AUTO._st||0)>1.2){if(AUTO._st>2.6)AUTO._st=0;return{up:0,dn:true,hb:false,ax:-ax}}
+  return{up:v<vt?1:0,dn:v>vt*1.06&&C.vf>1.5,hb:false,ax}}
 
 // ================= main loop =================
 let last=performance.now(),camLook=new THREE.Vector3(),tmp=new THREE.Vector3();
@@ -494,7 +533,7 @@ function poseCar(dt){const i=C.idx,gr=(PY[Math.min(i+1,N-1)]-PY[Math.max(i-1,0)]
   else{const pk=ASP<1?1+Math.min(.35,(1-ASP)*.7):1,back=(camMode?11:7)*pk,hi=(camMode?4.8:2.7)*(1+(pk-1)*.8);tmp.set(C.x-fx*back,C.y+hi,C.z-fz*back);const th=terr(tmp.x,tmp.z)+1.2;if(tmp.y<th&&tNd>PLAT)tmp.y=th;
     if(GS.mode==='run')cam.position.lerp(tmp,1-Math.exp(-dt*9));else cam.position.copy(tmp);camLook.set(C.x+fx*5,C.y+1.1,C.z+fz*5)}
   cam.lookAt(camLook);const wf=(camMode===2?74:62)+(ASP<1?Math.min(24,(1-ASP)*55):0)+Math.min(8,Math.abs(C.vf)*.1);if(Math.abs(cam.fov-wf)>.3){cam.fov=wf;cam.updateProjectionMatrix()}pCar.visible=camMode!==2;
-  sun.position.set(C.x+SUNV.x*300,C.y+SUNV.y*300,C.z+SUNV.z*300);sun.target.position.set(C.x,C.y,C.z);sun.target.updateMatrixWorld();if(waterM){waterM.position.x=C.x;waterM.position.z=C.z}}
+  sun.position.set(C.x+SUNV.x*300,C.y+SUNV.y*300,C.z+SUNV.z*300);sun.target.position.set(C.x,C.y,C.z);sun.target.updateMatrixWorld();if(waterM){waterM.position.x=C.x;waterM.position.z=C.z}if(backdrop)backdrop.position.set(cam.position.x,minY-10,cam.position.z)}
 function tick(dt){
   for(let i=GS.timers.length-1;i>=0;i--){const t=GS.timers[i];t.t-=dt;if(t.t<=0){GS.timers.splice(i,1);t.fn()}}
   if(GS.mode==='replay'){replayTick(dt);return}
