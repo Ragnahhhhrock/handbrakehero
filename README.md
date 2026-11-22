@@ -1,29 +1,22 @@
-# Rally90s
+# Endless Hairpins
 
-Browser rally simulator set in the 1990s World Rally Championship era. First stage: **Col de Turini** (Rallye Monte-Carlo), Moulinet to La Bollène-Vésubie, about 21.5 km.
+A browser game (three.js, single file): one mountain pass that is nothing but hairpins, climbing forever. Every hairpin is timed. The fast way round is a handbrake 180.
 
-Open `index.html` through any static web server (for example `python3 -m http.server`). It loads `track.json` and three.js from a CDN.
+Play: open `index.html` (serve the folder, e.g. `python3 -m http.server`).
 
-## How the stage is built
+## How to drive a hairpin
+Brake late on the straight, turn in hard, tap **Space** to throw the tail round, let go as the nose points up the next straight, then full throttle. The yellow-on-black chevron boards mark the outside of each bend; the top-right radar shows the next hairpin in yellow.
 
-1. `tools/elev.py` takes the routed road (`data/route.json`), resamples it every 15 m and looks up elevation.
-2. `tools/grid.py` fetches a coarse terrain grid around the road.
-3. `tools/process.py` turns both into `track.json`: smoothed road, corner detection and pace notes.
-
-Run the tools from inside `data/`, for example `cd data && python3 ../tools/elev.py eudem25m`. The scripts need network access to the public APIs below.
-
-## Cars
-
-Five period Group A / WRC-style cars, each with its own body shape, colours and handling: Subaru Impreza 555, Lancia Delta Integrale Evo 2, Ford Escort Cosworth, Mitsubishi Lancer Evolution III and Toyota Celica GT-Four ST205. They are simple low-poly models with plain team colours and no sponsor logos or wordmarks. Handling differences are tuned by feel, not from measured data.
+Grades per hairpin (entry line 12 m before the bend to 12 m after): PERFECT 180 (≤ 3.9 s, no wall contact, straight exit), GREAT, GOOD, SLOW, plus wall-touch penalties in the label. Run lengths: 10 or 25 hairpins, or endless. Best times are stored in the browser per car.
 
 ## Controls
+Arrows/WASD steer and throttle, **Space** handbrake, C camera, V voice, R back on the road (+4 s), Esc menu. Gamepad: stick, triggers, A handbrake.
 
-Up/W throttle, Down/S brake and reverse, Left/Right or A/D steer, Space handbrake, C camera, V voice, R back on the road (+5 s). Gamepad: stick, triggers, A for handbrake.
+## Cars
+Five period cars (Impreza 555, Delta Integrale Evo 2, Escort Cosworth, Lancer Evo III, Celica ST205) as generic low-poly shapes in plain team colours, no sponsor logos. Handling is tuned by feel.
 
-## Data credits
+## The mountain
+Generated, not real: the same road every run (fixed seed). Straights of 22 to 114 m alternate with 180-degree bends, climbing as you go. Forest gives way to rock, then snow, with altitude.
 
-- Road geometry: OpenStreetMap contributors (ODbL), routed through the public OSRM demo server.
-- Elevation: EU-DEM via OpenTopoData.
-- Pace notes are generated from road curvature, not copied from any pacenote set.
-
-Reference footage used for look and feel is not stored in this repo.
+## Col de Turini
+The earlier stage built from real road and elevation data is still here as `turini.html` (needs `track.json`; see `tools/` for the data pipeline). Road © OpenStreetMap contributors (ODbL), elevation EU-DEM via OpenTopoData.
