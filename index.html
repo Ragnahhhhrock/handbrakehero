@@ -30,8 +30,13 @@ body.playing .hud{display:block}
 #posB b{font-size:64px;color:var(--yel)}#posB span{font-size:26px;font-weight:800}#posB i{font-style:normal;font-size:22px;font-weight:800;margin-left:6px;color:#7dff8a}
 #timeB{left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));text-align:center}
 #timeB b{font-size:70px}#timeB.low b{color:#ff4b4b}#timeB span{display:block;font-size:15px;font-weight:700;opacity:.9}
-#spdB{right:max(12px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));text-align:right}
-#spdB b{font-size:54px}#spdB .g{display:inline-block;background:var(--red);font-weight:800;font-size:22px;padding:0 8px;margin-left:6px;vertical-align:top}
+#spdB{right:max(12px,env(safe-area-inset-right));bottom:calc(max(8px,env(safe-area-inset-bottom)) + 30px);width:230px;height:230px}
+#spdB canvas{position:absolute;inset:0;width:100%;height:100%}
+#gearN{position:absolute;left:50%;top:41%;transform:translate(-50%,-50%);font-size:104px;font-weight:800;line-height:1;color:var(--yel);text-shadow:0 3px 0 #000,0 0 18px #000a}
+#gearN small{position:absolute;left:50%;top:-6px;transform:translateX(-50%);font-size:13px;letter-spacing:.2em;color:#fff;opacity:.85}
+#spdN{position:absolute;left:0;right:0;bottom:6px;text-align:center}
+#spdN b{font-size:62px}#spdN small{display:inline;font-size:18px;margin-left:6px;letter-spacing:.1em}
+body.touch #spdB{right:auto;left:50%;transform:translateX(-50%);width:190px;height:190px}body.touch #gearN{font-size:84px}body.touch #spdN b{font-size:50px}
 #note{left:50%;transform:translateX(-50%);top:calc(max(10px,env(safe-area-inset-top)) + 98px);text-align:center;font-weight:800;font-size:26px;text-transform:uppercase;background:#ffd400;color:#0b1220;padding:0 14px;text-shadow:none;display:none!important}
 body.playing #note.on{display:block!important}
 #msg{left:50%;top:40%;transform:translate(-50%,-50%);font-size:clamp(40px,10vw,92px);font-weight:800;white-space:nowrap;opacity:0;transition:opacity .2s;text-align:center;line-height:1}
@@ -55,7 +60,7 @@ button:focus-visible{outline:3px solid var(--yel);outline-offset:2px}
 table{border-collapse:collapse;width:100%;font-size:21px;margin:8px 0}td,th{padding:3px 6px;border-bottom:1px solid #fff2;text-align:left;font-weight:700}td:last-child,th:last-child{text-align:right;font-variant-numeric:tabular-nums}
 tr.me td{color:var(--yel)}
 button.stb{display:block;width:100%;text-align:left;margin:6px 0;font-size:20px}button.stb .stars{float:right}button.alt{background:transparent}
-#quit{pointer-events:auto;right:max(12px,env(safe-area-inset-right));top:calc(max(10px,env(safe-area-inset-top)) + 72px);width:44px;height:44px;min-height:44px;padding:0;border-radius:10px;background:#0b1220aa;font-size:20px}body.touch #quit{top:calc(max(10px,env(safe-area-inset-top)) + 124px)}
+#quit{pointer-events:auto;right:max(12px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));width:44px;height:44px;min-height:44px;padding:0;border-radius:10px;background:#0b1220aa;font-size:20px}
 canvas.map{display:block;width:100%;height:110px;margin:6px 0}
 .stars{color:var(--yel);letter-spacing:.1em}
 .ini{display:flex;gap:10px;justify-content:center;margin:12px 0}.ini div{text-align:center}.ini b{display:block;font-size:72px;line-height:1;width:64px;border-bottom:5px solid var(--yel);margin:4px 0}.ini button{min-height:40px;width:64px;padding:0}
@@ -68,7 +73,7 @@ body.touch.playing #touch{display:block}#touch>*{pointer-events:auto}
 #touch button.on{background:#d7192add;border-color:#fff}
 #tH{width:96px;height:96px;right:max(14px,env(safe-area-inset-right));bottom:calc(max(20px,env(safe-area-inset-bottom)) + 18px);background:#ffd400d0;color:#0b1220;font-size:22px}
 #tB{width:80px;height:80px;right:calc(max(14px,env(safe-area-inset-right)) + 108px);bottom:calc(max(20px,env(safe-area-inset-bottom)) + 18px);font-size:16px}
-#tcam{position:fixed;z-index:3;display:none;right:max(12px,env(safe-area-inset-right));top:calc(max(10px,env(safe-area-inset-top)) + 70px);width:44px;height:44px;min-height:44px;padding:0;border-radius:10px;background:#0b1220aa}
+#tcam{position:fixed;z-index:3;display:none;right:calc(max(12px,env(safe-area-inset-right)) + 54px);top:max(10px,env(safe-area-inset-top));width:44px;height:44px;min-height:44px;padding:0;border-radius:10px;background:#0b1220aa}
 body.touch.playing #tcam{display:block}
 #skip{position:fixed;z-index:6;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));display:none}
 #banner{position:fixed;z-index:4;left:0;right:0;top:max(14px,env(safe-area-inset-top));text-align:center;font-weight:800;font-size:clamp(26px,6vw,46px);letter-spacing:.06em;display:none;text-shadow:0 2px 6px #000}
@@ -77,7 +82,7 @@ body.touch.playing #tcam{display:block}
 #load{position:fixed;inset:0;display:grid;place-items:center;font-size:26px;z-index:9;background:var(--night)}
 .conf{position:fixed;top:-20px;width:10px;height:16px;z-index:4;animation:fall linear forwards;pointer-events:none}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
-@media(max-width:600px){#posB b{font-size:48px}#timeB b{font-size:54px}#spdB b{font-size:40px}}
+@media(max-width:600px){#posB b{font-size:48px}#timeB b{font-size:54px}}
 @media(prefers-reduced-motion:reduce){.conf{display:none}}
 </style>
 </head>
@@ -86,7 +91,7 @@ body.touch.playing #tcam{display:block}
 <div id="load">Warming up the engines…</div>
 <div class="hud" id="posB"><small>POSITION</small><b id="pos">15</b><span>/15</span><i id="posd"></i></div>
 <div class="hud" id="timeB"><small>TIME</small><b id="tleft">0</b><span id="stg"></span></div>
-<div class="hud" id="spdB"><b id="kmh">0</b><small>KM/H<span class="g" id="gear">1</span></small></div>
+<div class="hud" id="spdB"><canvas id="tachC" width="460" height="460"></canvas><div id="gearN"><small>GEAR</small><span id="gear">1</span></div><div id="spdN"><b id="kmh">0</b><small>KM/H</small></div></div>
 <div class="hud" id="note"></div>
 <div class="hud" id="msg"></div>
 <div class="hud" id="prog"><canvas id="progC" width="900" height="44"></canvas></div>
@@ -564,7 +569,15 @@ function autoDrive(){const sk=AUTO.skill||.9,s=C.s,v=Math.max(C.vf,0.1),L=7+v*.5
 
 // ================= main loop =================
 let last=performance.now(),camLook=new THREE.Vector3(),tmp=new THREE.Vector3();
-function hudUpdate(){const kmh=Math.abs(C.vf)*3.6;$('#kmh').textContent=Math.round(kmh);const gs=[0,14,24,33,42,51,99],gi=gs.findIndex((x,k)=>Math.abs(C.vf)<gs[k+1]);$('#gear').textContent=C.vf<-.5?'R':kmh<2?'N':gi+1;
+function drawTach(rpm,top){const c=$('#tachC'),x=c.getContext('2d'),W=c.width,cx=W/2,cy=W/2,r=W*.42,a0=Math.PI*.75,a1=Math.PI*2.25,aa=a0+(a1-a0)*rpm;x.clearRect(0,0,W,W);
+  x.fillStyle='#0b1220c8';x.beginPath();x.arc(cx,cy,W*.48,0,7);x.fill();x.lineWidth=5;x.strokeStyle='#fff7';x.stroke();
+  x.lineCap='butt';x.lineWidth=30;x.strokeStyle='#ffffff26';x.beginPath();x.arc(cx,cy,r,a0,a1);x.stroke();
+  x.strokeStyle='#d7192a66';x.beginPath();x.arc(cx,cy,r,a0+(a1-a0)*.86,a1);x.stroke();
+  x.strokeStyle=rpm>.86?'#ff3b3b':'#ffd400';x.beginPath();x.arc(cx,cy,r,a0,aa);x.stroke();
+  x.strokeStyle='#fff';x.lineWidth=3;for(let i=0;i<=10;i++){const a=a0+(a1-a0)*i/10,r1=r+20,r2=r+(i%5?28:36);x.beginPath();x.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);x.lineTo(cx+Math.cos(a)*r2,cy+Math.sin(a)*r2);x.stroke()}
+  x.strokeStyle='#fff';x.lineWidth=6;x.beginPath();x.moveTo(cx+Math.cos(aa)*(r-24),cy+Math.sin(aa)*(r-24));x.lineTo(cx+Math.cos(aa)*(r+20),cy+Math.sin(aa)*(r+20));x.stroke()}
+function hudUpdate(){const v=Math.abs(C.vf),kmh=v*3.6;$('#kmh').textContent=Math.round(kmh);const gs=[0,14,24,33,42,51,62],gi=(i=>i<0?5:i)(gs.findIndex((x,k)=>k<6&&v<gs[k+1]));$('#gear').textContent=C.vf<-.5?'R':kmh<2?'N':gi+1;
+  drawTach(clamp(.2+(v-gs[gi])/(gs[gi+1]-gs[gi])*.75,.15,1));
   $('#pos').textContent=GS.rankNow||GS.place;$('#tleft').textContent=GS.practice?fmt(rt):Math.max(0,Math.ceil(tl));$('#timeB').className='hud'+(tl<8&&GS.mode==='run'?' low':'');$('#stg').textContent='STAGE '+(GS.stage+1)+' · '+ST.name;
   const c=$('#progC'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);x.fillStyle='#ffffff40';x.fillRect(0,H/2-3,W,6);const f=s=>clamp((s-START_S)/(FIN_S-START_S),0,1)*(W-20)+10;
   x.fillStyle='#ffffff';CPS.forEach(s=>x.fillRect(f(s)-2,H/2-10,4,20));x.fillStyle='#ff4040';x.fillRect(W-12,H/2-12,5,24);for(const a of AIS){x.fillStyle='#ffffffa0';x.beginPath();x.arc(f(a.s),H/2,6,0,7);x.fill()}x.fillStyle='#ffd400';x.beginPath();x.arc(f(C.s),H/2,10,0,7);x.fill()}
