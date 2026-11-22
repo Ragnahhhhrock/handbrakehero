@@ -123,11 +123,13 @@ function nearest(x,z,r){const cx=Math.floor(x/CELL),cz=Math.floor(z/CELL),n=Math
 const G=T.grid;
 function gridH(x,z){const fx=clamp((x-G.x0)/(G.x1-G.x0)*(G.nx-1),0,G.nx-1.001),fz=clamp((z-G.z0)/(G.z1-G.z0)*(G.ny-1),0,G.ny-1.001);
   const i=fx|0,j=fz|0,u=fx-i,v=fz-j,h=G.h,n=G.nx;return (h[j*n+i]*(1-u)+h[j*n+i+1]*u)*(1-v)+(h[(j+1)*n+i]*(1-u)+h[(j+1)*n+i+1]*u)*v}
-const FLAT=30;
+const FLAT=14;
 for(let i=0;i<ns;i++)[-1,1].forEach((sd,k)=>{let c=0;for(const o of[18,30])if(gridH(S[i].x-TZ[i]*sd*o,S[i].z+TX[i]*sd*o)>S[i].y+3+o*0.1)c++;UP[k][i]=c==2?1:0});
 for(const u of UP){for(let i=1;i<ns-1;i++)if(u[i-1]&&u[i+1])u[i]=1;}
+const PAR=[new Uint8Array(ns),new Uint8Array(ns)];
+for(let i=0;i<ns;i++)[-1,1].forEach((sd,k)=>{const rx=-TZ[i]*sd,rz=TX[i]*sd,drop=!UP[k][i]&&gridH(S[i].x+rx*25,S[i].z+rz*25)<S[i].y-5;PAR[k][i]=drop&&(Math.sin(i*ds/170+k*2)+Math.sin(i*ds/61+k)*0.6>-0.7)?1:0});
 function lowest(x,z){const cx=Math.floor(x/CELL),cz=Math.floor(z/CELL);let m=1e9;for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const a=hash.get(key(cx+i,cz+j));if(!a)continue;for(const k of a){const dx=S[k].x-x,dz=S[k].z-z;if(dx*dx+dz*dz<FLAT*FLAT&&S[k].y<m)m=S[k].y}}return m}
-function terrainH(x,z){const g=gridH(x,z),q=nearest(x,z,100);if(!q)return g;if(q.d<FLAT)return Math.min(lowest(x,z),S[q.i].y)-0.6;const hr=S[q.i].y-0.6;return hr+(g-hr)*sstep(FLAT,100,q.d)}
+function terrainH(x,z){const g=gridH(x,z),q=nearest(x,z,100);if(!q)return g;if(q.d<FLAT)return Math.min(lowest(x,z),S[q.i].y)-0.6;const hr=S[q.i].y-0.6;return hr+(g-hr)*sstep(FLAT,70,q.d)}
 
 // ---------- three ----------
 const canvas=$('#gl'),R=new THREE.WebGLRenderer({canvas,antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -169,7 +171,7 @@ function buildRoad(){
     const alt=S[i].y,n1=Math.sin(i*ds/140)*0.6+Math.sin(i*ds/53+1)*0.5+0.2;
     const s=snowMode?clamp(n1,0,1)*sstep(1250,1450,alt):0;snowAt[i]=s;
     const sEdge=snowMode?clamp(0.3+sstep(850,1300,alt)*0.9+n1*0.25,0,1):0,wet=0.78+0.22*(Math.sin(i*ds/230+2)*0.5+0.5);
-    for(let k=0;k<W;k++){const p=(i*W+k)*3,rx=-TZ[i],rz=TX[i],skirt=k==0||k==W-1,edge=k==1||k==W-2;pos[p]=S[i].x+rx*off[k];pos[p+1]=S[i].y+(skirt?(UP[k?1:0][i]?4.5:-14):edge?-0.05:0.03);pos[p+2]=S[i].z+rz*off[k];
+    for(let k=0;k<W;k++){const p=(i*W+k)*3,rx=-TZ[i],rz=TX[i],skirt=k==0||k==W-1,edge=k==1||k==W-2;pos[p]=S[i].x+rx*off[k];pos[p+1]=S[i].y+(skirt?(UP[k?1:0][i]?1.1:-14):edge?-0.05:0.03);pos[p+2]=S[i].z+rz*off[k];
       uv[(i*W+k)*2]=us[k];uv[(i*W+k)*2+1]=i*ds/24;const c=skirt?(UP[k?1:0][i]?0.55:0.75):wet*(1+(edge?sEdge*1.2:sEdge*0.3+s*0.9));col[p]=c;col[p+1]=c*(skirt?0.95:1);col[p+2]=c*(skirt?0.85:1.08)}}
   for(let i=0;i<ns-1;i++)for(let k=0;k<W-1;k++){const a=i*W+k,b=a+W;idx.push(a,b,a+1,a+1,b,b+1)}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('uv',new THREE.BufferAttribute(uv,2));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();
@@ -205,9 +207,12 @@ function buildSnowFall(){
 // roadside: posts on drops, trees, crowd, chalets, gantries
 const dummy=new THREE.Object3D();
 (function props(){
-  const posts=[];for(let i=0;i<ns;i+=4)for(const sd of[-1,1]){const rx=-TZ[i]*sd,rz=TX[i]*sd,x=S[i].x+rx*(HW+VG+0.4),z=S[i].z+rz*(HW+VG+0.4);if(!UP[sd<0?0:1][i]&&gridH(S[i].x+rx*25,S[i].z+rz*25)<S[i].y-5)posts.push([x,S[i].y,z])}
+  const posts=[];for(let i=0;i<ns;i+=4)for(const sd of[-1,1]){const rx=-TZ[i]*sd,rz=TX[i]*sd,x=S[i].x+rx*(HW+VG+0.4),z=S[i].z+rz*(HW+VG+0.4);if(!UP[sd<0?0:1][i]&&!PAR[sd<0?0:1][i]&&gridH(S[i].x+rx*25,S[i].z+rz*25)<S[i].y-5)posts.push([x,S[i].y,z])}
   const pm=new THREE.InstancedMesh(new THREE.BoxGeometry(0.28,0.8,0.28),new THREE.MeshLambertMaterial({color:0xf2f2ea}),posts.length);
   posts.forEach((p,k)=>{dummy.position.set(p[0],p[1]+0.35,p[2]);dummy.rotation.set(0,0,0);dummy.updateMatrix();pm.setMatrixAt(k,dummy.matrix)});scene.add(pm);
+  {const pr=[];for(let i=0;i<ns;i++)for(let k=0;k<2;k++)if(PAR[k][i])pr.push([i,k]);
+   const wm=new THREE.InstancedMesh(new THREE.BoxGeometry(0.45,2.2,3.3),new THREE.MeshLambertMaterial({color:0xffffff}),pr.length);
+   pr.forEach(([i,k],n)=>{const sd=k?1:-1,o=HW+VG+0.4;dummy.position.set(S[i].x-TZ[i]*sd*o,S[i].y-0.35,S[i].z+TX[i]*sd*o);dummy.rotation.set(0,Math.atan2(TX[i],TZ[i]),0);dummy.scale.set(1,1,1);dummy.updateMatrix();wm.setMatrixAt(n,dummy.matrix);const v=0.5+((i*37)%11)/40;wm.setColorAt(n,new THREE.Color(v*0.95,v*0.92,v*0.84))});scene.add(wm)}
   const tg=new THREE.ConeGeometry(2.4,10,6);tg.translate(0,6,0);const trees=[];
   while(trees.length<7000){const x=G.x0+rnd()*(G.x1-G.x0),z=G.z0+rnd()*(G.z1-G.z0),q=nearest(x,z,12);if(q)continue;const y=terrainH(x,z);if(y>1750)continue;trees.push([x,y,z,0.6+rnd()*0.8])}
   const tm=new THREE.InstancedMesh(tg,new THREE.MeshLambertMaterial({color:0x1f3a22}),trees.length);
@@ -330,7 +335,7 @@ function step(dt){
   C.w+=(A*Fyf*Math.cos(C.steer)-B*Fyr)/IZ*dt;if(Math.abs(vf)<1)C.w*=0.9;
   C.x+=C.vx*dt;C.z+=C.vz*dt;C.H+=C.w*dt;
   // walls: uphill side acts as rock face; downhill side means off the road
-  if(alat>HW+VG+0.2){const side=Math.sign(C.lat),up=UP[side<0?0:1][i];
+  if(alat>HW+VG+0.2){const side=Math.sign(C.lat),up=UP[side<0?0:1][i]||PAR[side<0?0:1][i];
     if(up){const pen2=alat-HW-VG-0.2;C.x-=(-TZ[i]*side)*pen2;C.z-=(TX[i]*side)*pen2;const vn=(C.vx*-TZ[i]+C.vz*TX[i]);if(vn*side>0){C.vx-=-TZ[i]*vn*1.25;C.vz-=TX[i]*vn*1.25;const fr=Math.max(0.55,1-0.05*Math.abs(vn));C.vx*=fr;C.vz*=fr;C.w*=fr;let he=Math.atan2(TX[i],-TZ[i])-C.H;while(he>Math.PI)he-=2*Math.PI;while(he<-Math.PI)he+=2*Math.PI;if(Math.abs(he)<2)C.H+=he*0.04;if(Math.abs(vn)>5)flash('Rock!',600)}}
     else if(alat>HW+VG+4){flash('Off! +5 s',1400);resetToRoad(false);pen+=5}}
   C.vf=vf;C.vr=vr;C.slip=Math.abs(vr)>2.5||(hb&&Math.abs(vf)>3)}
