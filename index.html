@@ -439,9 +439,22 @@ function newGame(){ga('championship_start',{car:store.get('r90-car')||'imp'});GS
 function startPractice(si){ga('practice_start',{stage_number:si+1,car:store.get('r90-car')||'imp'});GS.practice=true;GS.stage=si;GS.place=15;GS.score=0;GS.total=0;GS.passes=0;GS.res=[];GS.rec=[];GS.events=[];GS.order=defaultOrder();ensureAI();applyPhys();audioStart();if(ac&&ac.state==='suspended')ac.resume();startStage(si)}
 function practiceMenu(){GS.mode='title';showCard(`<div class="in"><h2>PRACTICE</h2><h1>Select stage</h1><p style="margin-bottom:4px">No time limit. Rivals still start ahead of you. Your best times are saved.</p>${STAGES.map((st,i)=>{const b=parseFloat(store.get('r90-best-'+st.id)),lk=i===3&&store.get('r90-lake')!=='1';if(lk)return `<button class="stb" disabled style="opacity:.45"><b>Bonus · LOCKED</b> · Win the Mountain stage in Championship to unlock<br><small>&nbsp;</small></button>`;return `<button class="stb" data-st="${i}"><b>${i===3?'Bonus':i+1} · ${st.name}</b> · ${st.sub}<span class="stars">${stars(st.diff)}</span><br><small>${(st.len/1000).toFixed(2)} km · best ${b?fmt(b):'none yet'}</small></button>`}).join('')}<div class="row"><button id="bk">Back</button></div></div>`);card.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>startPractice(+b.dataset.st));$('#bk').onclick=title;card.querySelector('[data-st]').focus()}
 function quitToTitle(){if(GS.mode==='run'||GS.mode==='count')ga('quit_stage',gaStage());GS.timers.length=0;document.body.classList.remove('playing');$('#msg').style.opacity=0;$('#banner').style.display='none';$('#skip').style.display='none';title()}
-function setupGrid(){GS.order.forEach((id,j)=>{const row=j>>1,s=START_S-row*9-(j&1)*4.5,lat=(j&1?1:-1)*Math.min(1.7,HWA[0]*.42);
-    if(id==='P'){const p=pathAt(s),nx=-p.tz,nz=p.tx;Object.assign(C,{x:p.x+nx*lat,z:p.z+nz*lat,y:p.y,H:Math.atan2(p.tx,-p.tz),vx:0,vz:0,w:0,steer:0,idx:p.k,vy:0,air:false,pitch:0,roll:0,thr:0});track();camYaw=C.H}
-    else{const a=AIS[id];Object.assign(a,{s,lat,laneT:lat,v:0,vy:0,air:false,hit:0,blocked:0,skill:(.84-id*.0145)*(1+(rng(id*31+GS.stage*7)()-.5)*.03)});const p=pathAt(s);a.y=p.y}})}
+// Rival field: cars do NOT start with the player. They are staggered ahead along the road.
+// pg = pace a good player holds (fraction of the perfect-driver speed profile), pp = pace of a near-perfect run.
+// A good run catches the 5 nearest (slowest) rivals; only a near-perfect run (pp) can catch the leader, and only where lead:true.
+const FIELD={desert:{pg:.90,pp:.97,lead:false},forest:{pg:.90,pp:.97,lead:false},mountain:{pg:.90,pp:.97,lead:true},lake:{pg:.90,pp:.97,lead:true}},CATCH=5,FRAC=[.35,.5,.62,.75,.85];
+// returns {gap,skill} per rival id. k = order from nearest (0) to leader (NAI-1).
+function fieldPlan(){const F=FIELD[ST.id]||FIELD.desert,L=ST.len,out=new Array(NAI);let g4=0;
+  for(let k=0;k<NAI;k++){const id=NAI-1-k,base=(.84-id*.0145)*ST.skill;let gap,sk;
+    if(k<CATCH){gap=Math.max(L*(1-base/F.pg)*FRAC[k],k?out[id+1].gap+10:28);sk=base;g4=gap}
+    else{gap=g4+(k-CATCH+1)*8;sk=(1-gap/L)*(F.lead?(F.pg+F.pp)/2:F.pp*1.03)}
+    out[id]={gap,skill:sk/ST.skill}}
+  return out}
+function setupGrid(){const plan=fieldPlan();
+  {const lat=0,s=START_S-3,p=pathAt(s),nx=-p.tz,nz=p.tx;
+    Object.assign(C,{x:p.x+nx*lat,z:p.z+nz*lat,y:p.y,H:Math.atan2(p.tx,-p.tz),vx:0,vz:0,w:0,steer:0,idx:p.k,vy:0,air:false,pitch:0,roll:0,thr:0});track();camYaw=C.H}
+  AIS.forEach((a,id)=>{const s=START_S+plan[id].gap,lat=(id&1?1:-1)*Math.min(1.2,HWA[0]*.3);
+    Object.assign(a,{s,lat,laneT:lat,v:0,vy:0,air:false,hit:0,blocked:0,skill:plan[id].skill*(1+(rng(id*31+GS.stage*7)()-.5)*.03)});const p=pathAt(s);a.y=p.y})}
 function startStage(si){GS.stage=si;GS.mode='load';showCard(`<div class="in"><h2>STAGE ${si+1}${si===3?' · BONUS':''}</h2><h1>Loading…</h1></div>`);
   setTimeout(()=>{buildStage(si);setupGrid();ensureChunks(C.x,C.z,99,3);
     curRec={si,ts:[],buf:[]};GS.rec.push(curRec);recT=0;rt=0;cpDone=0;finT=0;lastRank=GS.place;GS.rankNow=GS.place;tl=GS.practice?9999:SECT[0];GS.passesStage=0;
