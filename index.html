@@ -91,7 +91,7 @@ table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding
     <button data-c="night" aria-pressed="false">Night</button>
   </div>
   <div class="row" id="cars" role="group" aria-label="Car"></div>
-  <canvas id="carPrev" width="360" height="104"></canvas>
+  <canvas id="carPrev" width="720" height="250" aria-label="Selected car, rotating"></canvas>
   <div class="keys" id="carInfo" style="margin:0 0 6px"></div>
   <label><input type="checkbox" id="voice" checked> Co-driver calls the hairpins</label>
   <label><input type="checkbox" id="sound" checked> Engine, tyre and anti-lag pops</label>
@@ -125,38 +125,46 @@ const hemi=new THREE.HemisphereLight(0xcfe3ff,0x34452a,0.8),sun=new THREE.Direct
 // ---------- constants ----------
 const ds=2,RAD=24/Math.PI,HW=3.2,SHW=0.8,GL=0.06,GHP=0.08,PLAT=HW+SHW+1.2,WALL=HW+0.75,TWO_R=2*RAD;
 // ---------- car ----------
-const car=new THREE.Group(),wheels=[],wg=new THREE.CylinderGeometry(0.33,0.33,0.24,14),rg=new THREE.CylinderGeometry(0.2,0.2,0.26,10);wg.rotateZ(Math.PI/2);rg.rotateZ(Math.PI/2);
+const car=new THREE.Group(),wheels=[];
+// tyres: lathe with rounded shoulders; rims: barrel, lip, spokes, hub (per-car style)
+const tyreG=(()=>{const pr=[[0.2,-0.11],[0.27,-0.115],[0.315,-0.108],[0.33,-0.085],[0.333,0],[0.33,0.085],[0.315,0.108],[0.27,0.115],[0.2,0.11]].map(([r,y])=>new THREE.Vector2(r,y));const g=new THREE.LatheGeometry(pr,28);g.rotateZ(Math.PI/2);return g})();
+const RIMS={imp:[0xd2ac2e,6,'split'],del:[0xe8e8e8,8,'thin'],esc:[0xf2f2f2,6,'split'],lan:[0xf2f2f2,8,'thin'],cel:[0xf2f2f2,5,'split']};
+function makeRim(col,n,style,mats){const g=new THREE.Group(),m=new THREE.MeshPhongMaterial({color:col,shininess:60}),dk=new THREE.MeshLambertMaterial({color:0x1a1a1a});mats.push(m,dk);
+  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.205,0.205,0.2,24,1,true),m);barrel.rotation.z=Math.PI/2;g.add(barrel);
+  const back=new THREE.Mesh(new THREE.CircleGeometry(0.2,20),dk);back.rotation.y=Math.PI/2;back.position.x=0.02;g.add(back);
+  const lip=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.012,6,24),m);lip.rotation.y=Math.PI/2;lip.position.x=0.1;g.add(lip);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.06,0.06,12),m);hub.rotation.z=Math.PI/2;hub.position.x=0.075;g.add(hub);
+  const nut=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.03,6),dk);nut.rotation.z=Math.PI/2;nut.position.x=0.11;g.add(nut);
+  const w=style==='thin'?0.026:0.042;
+  for(let i=0;i<n;i++)[0,style==='split'?0.18:null].forEach(o=>{if(o===null)return;const a=i/n*Math.PI*2+o,s=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.15,w),m);s.position.set(0.085,Math.cos(a)*0.125,Math.sin(a)*0.125);s.rotation.x=-a;g.add(s)});
+  return g}
+// body from cars.json (built in Blender: models/build_cars.py) with per-corner smooth normals
+function bodyMesh(m,mats){const nt=m.c.length,pos=new Float32Array(nt*9),col=new Float32Array(nt*9),nor=new Float32Array(nt*9),pc=m.pal.map(h=>new THREE.Color(h));
+  for(let t=0;t<nt;t++)for(let k=0;k<3;k++){const vi=m.t[t*3+k]*3,o=t*9+k*3,c=pc[m.c[t]];pos[o]=m.v[vi]/1000;pos[o+1]=m.v[vi+1]/1000;pos[o+2]=m.v[vi+2]/1000;col[o]=c.r;col[o+1]=c.g;col[o+2]=c.b;nor[o]=m.n[o]/100;nor[o+1]=m.n[o+1]/100;nor[o+2]=m.n[o+2]/100}
+  const ge=new THREE.BufferGeometry();ge.setAttribute('position',new THREE.BufferAttribute(pos,3));ge.setAttribute('color',new THREE.BufferAttribute(col,3));ge.setAttribute('normal',new THREE.BufferAttribute(nor,3));ge.normalizeNormals();
+  const mm=new THREE.MeshPhongMaterial({vertexColors:true,shininess:70,specular:0x333333});mats.push(mm);return new THREE.Mesh(ge,mm)}
 const CARS=[
  {id:'imp',short:'Impreza 555',name:'Subaru Impreza 555',who:'Colin McRae',note:'Balanced and quick to turn in.',len:4.35,body:0x1b3f96,trim:0x0f2260,sill:0x0f2260,rim:0xd2ac2e,
-  prof:[[2.17,0.3],[2.2,0.56],[1.55,0.7],[0.95,0.76],[0.62,1.27],[-0.5,1.29],[-1.08,0.84],[-2.1,0.84],[-2.17,0.58],[-2.17,0.3]],glass:[[0.9,0.8],[0.6,1.22],[-0.48,1.24],[-1.04,0.86]],
-  wing:{y:1.36,z:1.95,w:1.6,d:0.45,h:0.16},phys:{M:1230,A:1.26,B:1.26,CF:94000,CR:98000,PWR:225000,FMAX:9800,steer:0.62}},
+  phys:{M:1230,A:1.26,B:1.26,CF:94000,CR:98000,PWR:225000,FMAX:9800,steer:0.62}},
  {id:'del',short:'Delta Evo 2',name:'Lancia Delta Integrale Evo 2',who:'',note:'Short wheelbase, lively rear. Rewards smooth hands.',len:3.95,body:0xf1f1ec,trim:0x20386e,sill:0x20386e,rim:0xd8d8d8,
-  prof:[[1.97,0.3],[1.99,0.58],[1.4,0.74],[0.85,0.8],[0.55,1.33],[-1.6,1.36],[-1.97,1.0],[-1.97,0.3]],glass:[[0.82,0.84],[0.52,1.27],[-1.55,1.3],[-1.9,1.02]],
-  wing:{y:1.4,z:1.82,w:1.4,d:0.3,h:0.1},phys:{M:1235,A:1.22,B:1.26,CF:90000,CR:80000,PWR:218000,FMAX:9600,steer:0.6}},
+  phys:{M:1235,A:1.22,B:1.26,CF:90000,CR:80000,PWR:218000,FMAX:9600,steer:0.6}},
  {id:'esc',short:'Escort Cosworth',name:'Ford Escort Cosworth',who:'Bruno Thiry / François Delecour',note:'Long and stable, strong top speed, pushes wide.',len:4.27,body:0xf0f0ea,trim:0x1a3a82,sill:0x1a3a82,rim:0xcfd2d8,
-  prof:[[2.15,0.3],[2.17,0.55],[1.5,0.7],[0.95,0.78],[0.55,1.3],[-0.55,1.33],[-1.6,0.98],[-2.12,0.92],[-2.12,0.3]],glass:[[0.9,0.82],[0.58,1.24],[-0.5,1.27],[-1.4,0.98]],
-  wing:{y:1.14,z:1.95,w:1.72,d:0.72,h:0.24},phys:{M:1215,A:1.3,B:1.31,CF:84000,CR:102000,PWR:236000,FMAX:9900,steer:0.58}},
+  phys:{M:1215,A:1.27,B:1.28,CF:84000,CR:102000,PWR:236000,FMAX:9900,steer:0.58}},
  {id:'lan',short:'Lancer Evo III',name:'Mitsubishi Lancer Evolution III Group A',who:'Tommi Mäkinen',note:'Sharpest turn-in, a little edgy on the exit.',len:4.3,body:0xf2f2ee,trim:0xb71c25,sill:0xb71c25,rim:0xd8d8d8,
-  prof:[[2.15,0.3],[2.16,0.58],[1.6,0.72],[0.95,0.78],[0.6,1.26],[-0.5,1.28],[-1.1,0.83],[-2.05,0.86],[-2.15,0.6],[-2.15,0.3]],glass:[[0.9,0.82],[0.58,1.2],[-0.48,1.22],[-1.06,0.85]],
-  wing:{y:1.36,z:1.95,w:1.5,d:0.4,h:0.16},phys:{M:1250,A:1.25,B:1.27,CF:100000,CR:90000,PWR:222000,FMAX:9700,steer:0.64}},
+  phys:{M:1250,A:1.25,B:1.26,CF:100000,CR:90000,PWR:222000,FMAX:9700,steer:0.64}},
  {id:'cel',short:'Celica ST205',name:'Toyota Celica GT-Four ST205 Group A',who:'Juha Kankkunen',note:'Best traction out of hairpins.',len:4.3,body:0xf1f1ec,trim:0x1e7a3c,sill:0xc4262e,rim:0xd8d8d8,
-  prof:[[2.15,0.3],[2.17,0.5],[1.45,0.64],[0.85,0.7],[0.25,1.2],[-0.75,1.24],[-1.65,0.87],[-2.13,0.84],[-2.13,0.3]],glass:[[0.8,0.74],[0.28,1.15],[-0.72,1.19],[-1.5,0.88]],
-  wing:{y:1.28,z:1.98,w:1.55,d:0.4,h:0.16},phys:{M:1235,A:1.28,B:1.3,CF:91000,CR:96000,PWR:228000,FMAX:10400,steer:0.6}}];
+  phys:{M:1235,A:1.27,B:1.27,CF:91000,CR:96000,PWR:228000,FMAX:10400,steer:0.6}}];
 let carMesh=null,carMats=[],lampM=null,tailM=null,carDef=CARS[0];
 function shapeMesh(pts,w,mat){const sh=new THREE.Shape();pts.forEach(([x,y],i)=>i?sh.lineTo(x,y):sh.moveTo(x,y));const g=new THREE.ExtrudeGeometry(sh,{depth:w,bevelEnabled:false});g.translate(0,0,-w/2);g.rotateY(Math.PI/2);return new THREE.Mesh(g,mat)}
 function buildCar(d){
-  if(carMesh){car.remove(carMesh);carMesh.traverse(o=>{if(o.geometry&&o.geometry!==wg&&o.geometry!==rg)o.geometry.dispose()})}
-  carMesh=new THREE.Group();carMats=[];wheels.length=0;
-  const mat=c=>{const m=new THREE.MeshLambertMaterial({color:c});carMats.push(m);return m},body=mat(d.body),trim=mat(d.trim),sill=mat(d.sill),rimM=mat(d.rim),glassM=new THREE.MeshLambertMaterial({color:0x0e1620}),black=new THREE.MeshLambertMaterial({color:0x111111});
-  const W=1.76,add=(sx,sy,sz,m,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);b.position.set(x,y,z);carMesh.add(b);return b},L2=d.len/2,ph=d.phys;
-  {const m=CARMODELS[d.id],nt=m.c.length,pos=new Float32Array(nt*9),col=new Float32Array(nt*9),pc=m.pal.map(h=>new THREE.Color(h));
-    for(let t=0;t<nt;t++)for(let k=0;k<3;k++){const vi=m.t[t*3+k]*3,o=t*9+k*3,c=pc[m.c[t]];pos[o]=m.v[vi]/1000;pos[o+1]=m.v[vi+1]/1000;pos[o+2]=m.v[vi+2]/1000;col[o]=c.r;col[o+1]=c.g;col[o+2]=c.b}
-    const ge=new THREE.BufferGeometry();ge.setAttribute('position',new THREE.BufferAttribute(pos,3));ge.setAttribute('color',new THREE.BufferAttribute(col,3));ge.computeVertexNormals();
-    const mm=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});carMats.push(mm);carMesh.add(new THREE.Mesh(ge,mm))}
+  if(carMesh){car.remove(carMesh);carMesh.traverse(o=>{if(o.geometry&&o.geometry!==tyreG)o.geometry.dispose()})}
+  carMesh=new THREE.Group();carMats=[];wheels.length=0;const m=CARMODELS[d.id],ph=d.phys,black=new THREE.MeshLambertMaterial({color:0x161616});
+  carMesh.add(bodyMesh(m,carMats));
   lampM=new THREE.MeshBasicMaterial({color:0x554c22});
-  [-0.6,-0.2,0.2,0.6].forEach(x=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,0.08,12),lampM);l.rotation.x=Math.PI/2;l.position.set(x,CARMODELS[d.id].lampY,-L2-0.06);carMesh.add(l)});
-  tailM=new THREE.MeshBasicMaterial({color:0x440000});add(1.5,0.1,0.04,tailM,0,0.68,L2+0.02);
-  [[-0.8,-ph.A],[0.8,-ph.A],[-0.8,ph.B],[0.8,ph.B]].forEach(([x,z],k)=>{const p=new THREE.Group();p.position.set(x,0.33,z);const w=new THREE.Mesh(wg,black);p.add(w);p.add(new THREE.Mesh(rg,rimM));carMesh.add(p);wheels.push({p,w,front:k<2})});
+  [-0.6,-0.2,0.2,0.6].forEach(x=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.07,14),lampM);l.rotation.x=Math.PI/2;l.position.set(x,m.lampY,m.zf-0.12);carMesh.add(l)});
+  tailM=new THREE.MeshBasicMaterial({color:0x440000});m.tail.forEach(([x,y,z,w,h])=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),tailM);p.position.set(x,y,z);carMesh.add(p)});
+  const rd=RIMS[d.id]||RIMS.imp;
+  [[-0.8,-ph.A],[0.8,-ph.A],[-0.8,ph.B],[0.8,ph.B]].forEach(([x,z],k)=>{const p=new THREE.Group();p.position.set(x,0.33,z);const w=new THREE.Group();w.add(new THREE.Mesh(tyreG,black));const r=makeRim(rd[0],rd[1],rd[2],[]);if(x<0)r.rotation.y=Math.PI;w.add(r);p.add(w);carMesh.add(p);wheels.push({p,w,front:k<2})});
   car.add(carMesh)}
 scene.add(car);
 const head=new THREE.SpotLight(0xfff4d8,0,320,0.45,0.45,1),pod=new THREE.SpotLight(0xfff0c0,0,160,0.95,0.6,1);head.position.set(0,0.8,-2);pod.position.set(0,1.2,-1.6);
@@ -166,7 +174,7 @@ const hT=new THREE.Object3D();hT.position.set(0,-0.5,-40);car.add(head,pod,hT);h
 function emis(){const night=cond==='night';carMats.forEach(m=>m.emissive.set(night?0x2a2a30:0));if(lampM)lampM.color.set(night?0xfff6c8:0x554c22)}
 let M=1230,IZ=1900,A=1.25,B=1.3,CF=90000,CR=95000,PWR=215000,FMAX=9500,MS=0.6;const g=9.81;
 function selectCar(id){carDef=CARS.find(c=>c.id===id)||CARS[0];const p=carDef.phys;M=p.M;A=p.A;B=p.B;CF=p.CF;CR=p.CR;PWR=p.PWR;FMAX=p.FMAX;MS=p.steer;IZ=M*1.55;
-  buildCar(carDef);head.position.set(0,0.8,-carDef.len/2);pod.position.set(0,1.2,-carDef.len/2+0.4);emis();store.set('hp-car',carDef.id);if(typeof drawPrev==='function')drawPrev()}
+  buildCar(carDef);const cm=CARMODELS[carDef.id];head.position.set(0,0.8,cm.zf);pod.position.set(0,1.2,cm.zf+0.4);emis();store.set('hp-car',carDef.id);if(typeof drawPrev==='function')drawPrev()}
 let cond='day';const SUN=new THREE.Vector3(-0.5,0.7,0.5).normalize();
 function applyCond(){const night=cond==='night';
   scene.background=new THREE.Color(night?0x0a1222:0x9fc3e8);scene.fog=new THREE.Fog(night?0x0a1222:0xbcd3e8,night?40:150,night?520:620);
@@ -404,8 +412,8 @@ function drawRadar(){mc.clearRect(0,0,300,300);const sc=1.15,cx=150,cy=215,ch=Ma
 const flameTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,1,32,32,31);gr.addColorStop(0,'rgba(255,250,210,1)');gr.addColorStop(0.25,'rgba(255,170,40,0.95)');gr.addColorStop(0.6,'rgba(255,80,10,0.5)');gr.addColorStop(1,'rgba(255,40,0,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
 const flames=[];for(let i=0;i<14;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:flameTex,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));sp.visible=false;scene.add(sp);flames.push({sp,life:0,s:1,vx:0,vy:0,vz:0})}
 const exLight=new THREE.PointLight(0xff7a22,0,14);scene.add(exLight);let fI=0,exL=0;
-function flame(st){const L2=carDef.len/2;[0.42,-0.42].forEach(sx=>{if(Math.random()<0.45&&sx<0)return;
-  const p=car.localToWorld(new THREE.Vector3(sx,0.38,L2+0.12)),f=flames[fI++%flames.length];f.life=1;f.s=(0.7+Math.random()*0.9)*st*snd().fl;f.sp.position.copy(p);const sp2=4+Math.random()*3;f.vx=-Math.sin(C.H)*sp2+C.vx*0.3;f.vz=Math.cos(C.H)*sp2+C.vz*0.3;f.vy=0.4;f.sp.visible=true;exLight.position.copy(p);exL=1.5*st});}
+function flame(st){const cm=CARMODELS[carDef.id];cm.exX.forEach(sx=>{
+  const p=car.localToWorld(new THREE.Vector3(sx,cm.exY,cm.zr+0.16)),f=flames[fI++%flames.length];f.life=1;f.s=(0.7+Math.random()*0.9)*st*snd().fl;f.sp.position.copy(p);const sp2=4+Math.random()*3;f.vx=-Math.sin(C.H)*sp2+C.vx*0.3;f.vz=Math.cos(C.H)*sp2+C.vz*0.3;f.vy=0.4;f.sp.visible=true;exLight.position.copy(p);exL=1.5*st});}
 let thrPrev=0,alsLevel=0,alsTimer=0;
 function fire(st){popSound(st);if(st>0.45)flame(st)}
 function alsUpdate(dt,rpm,kmh){
@@ -417,7 +425,7 @@ function alsUpdate(dt,rpm,kmh){
   flames.forEach(f=>{if(f.life>0){f.life-=dt*6;f.sp.position.x+=f.vx*dt;f.sp.position.z+=f.vz*dt;f.sp.position.y+=f.vy*dt;const s=f.s*0.55*(1.2+(1-f.life)*1.4);f.sp.scale.set(s,s,1);f.sp.material.opacity=Math.max(0,f.life);if(f.life<=0)f.sp.visible=false}});
   exL=Math.max(0,exL-dt*14);exLight.intensity=exL*(cond==='night'?3:1.2)}
 let last=performance.now(),mkT=0;const tmpV=new THREE.Vector3(),camLook=new THREE.Vector3();
-function frame(now){requestAnimationFrame(frame);pad();let dt=Math.min(0.05,(now-last)/1000);last=now;
+function frame(now){requestAnimationFrame(frame);pad();let dt=Math.min(0.05,(now-last)/1000);last=now;if(!$('#start').hidden)renderPrev(dt);
   if(state==='count'){countdown-=dt;const c=Math.ceil(countdown);$('#msg').className='hud';$('#msg').style.opacity=1;$('#msg').textContent=countdown>0?c:'GO';if(countdown<=0){state='run';setTimeout(()=>$('#msg').style.opacity=0,700)}}
   update(dt);ensureChunks(2);
   if(PAIRS.length>3&&PAIRS[1].i1<C.idx-70){dropPair(PAIRS.shift())}
@@ -466,11 +474,13 @@ scene.add(sun.target);
 // ---------- menu ----------
 function showBest(){const b=parseFloat(store.get('hp-best-'+goal+'-'+carDef.id)),h=parseFloat(store.get('hp-bhp-'+carDef.id));
   $('#best').textContent=(goal&&b?`Best ${goal}-hairpin run in this car: ${fmt(b)}. `:'')+(h?`Best single hairpin: ${h.toFixed(2)} s.`:'')}
-function drawPrev(){const c=$('#carPrev');if(!c)return;const x=c.getContext('2d'),d=carDef,sc=76,ox=180,gy=88,P=pt=>[ox+pt[0]*sc,gy-pt[1]*sc],hex=n=>'#'+n.toString(16).padStart(6,'0');x.clearRect(0,0,360,104);
-  const poly=(pts,col)=>{x.fillStyle=col;x.beginPath();pts.forEach((q,i)=>{const[a,b]=P(q);i?x.lineTo(a,b):x.moveTo(a,b)});x.closePath();x.fill()};
-  poly(d.prof,hex(d.body));const L2=d.len/2;poly([[L2-0.1,0.3],[L2-0.1,0.46],[-L2+0.1,0.46],[-L2+0.1,0.3]],hex(d.sill));poly(d.glass,'#0e1620');
-  const w=d.wing,[wx,wy]=P([-w.z,w.y]);x.fillStyle=hex(d.trim);x.fillRect(wx-w.d*sc/2,wy-3,w.d*sc,5);x.fillRect(wx-w.d*sc/2,wy-w.h*sc,2,w.h*sc);
-  [d.phys.A,-d.phys.B].forEach(ax=>{const[a,b]=P([ax,0.33]);x.fillStyle='#111';x.beginPath();x.arc(a,b,0.33*sc,0,7);x.fill();x.fillStyle=hex(d.rim);x.beginPath();x.arc(a,b,0.2*sc,0,7);x.fill()})}
+// menu turntable of the selected car
+const PV={r:null,sc:new THREE.Scene(),cam:new THREE.PerspectiveCamera(26,720/250,0.1,50),g:null,a:0.7};
+PV.sc.add(new THREE.HemisphereLight(0xdfe9ff,0x303848,0.8));{const l=new THREE.DirectionalLight(0xfff1d6,1.0);l.position.set(-3,5,3);PV.sc.add(l)}
+{const d=new THREE.Mesh(new THREE.CircleGeometry(3.2,40),new THREE.MeshBasicMaterial({color:0x1b2a4a}));d.rotation.x=-Math.PI/2;PV.sc.add(d)}
+function drawPrev(){const c=$('#carPrev');if(!c)return;if(!PV.r){try{PV.r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true});PV.r.setPixelRatio(1)}catch(e){return}}
+  if(PV.g)PV.sc.remove(PV.g);PV.g=carMesh.clone();PV.sc.add(PV.g);renderPrev(0)}
+function renderPrev(dt){if(!PV.r||!PV.g)return;PV.a+=dt*0.5;PV.g.rotation.y=PV.a;PV.cam.position.set(0,1.75,5.9);PV.cam.lookAt(0,0.5,0);PV.r.render(PV.sc,PV.cam)}
 function pickCar(id){selectCar(id);document.querySelectorAll('[data-car]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.car===id));$('#carInfo').textContent=carDef.name+(carDef.who?' · '+carDef.who:'')+' — '+carDef.note;showBest()}
 $('#cars').innerHTML=CARS.map(c=>`<button data-car="${c.id}" aria-pressed="false">${c.short}</button>`).join('');
 document.querySelectorAll('[data-car]').forEach(b=>b.onclick=()=>pickCar(b.dataset.car));

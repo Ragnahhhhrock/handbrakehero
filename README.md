@@ -16,7 +16,11 @@ The start card has a **Tutorial** button: five practice hairpins with an on-scre
 Arrows/WASD steer and throttle, **Space** handbrake, C camera, I isometric view, V voice, R back on the road (+4 s), Esc menu. Gamepad: stick, triggers, A handbrake.
 
 ## Cars
-Five period cars (Impreza 555, Delta Integrale Evo 2, Escort Cosworth, Lancer Evo III, Celica ST205) as stylised low-poly models built in Blender (`models/build_cars.py` writes `models/cars.blend`, a `.glb` per car, and `cars.json` for the game). Liveries are original colour schemes in team colours, with no sponsor logos or wordmarks. Handling is tuned by feel. Engine sound is synthesised per car in the browser (flat-four burble for the Impreza, different pitch and tone for the others), with anti-lag crackle, pops and exhaust flames when you lift off the throttle; no recordings are used.
+Five period cars (Impreza 555, Delta Integrale Evo 2, Escort Cosworth, Lancer Evo III, Celica ST205), modelled in Blender by `models/build_cars.py` (writes `models/cars.blend`, a `.glb` per car, and `cars.json` for the game).
+
+Each body is lofted from cross-sections driven by side-profile and plan-view curves set to the real car's published length, wheelbase, overhangs, width and height (lowered slightly to rally ride height). The models have a proper greenhouse (raked windscreen, pillars, side and rear glass), open wheel arches with flares (box-section blisters on the Delta), and per-car details: bumpers and intakes, headlamp layout (four round lamps on the Delta and Celica), rear lights that glow under braking, bonnet scoops, vents and louvres, and each car's wing (the Escort's whale tail, the tall Impreza and Lancer wings, the Delta's roof spoiler). Smooth normals are exported per triangle corner. Wheels are built in the game: rounded tyres and multi-spoke rims in each car's colour (gold on the Impreza). The start menu shows the selected car on a turntable.
+
+Liveries are original colour schemes in team colours, with no sponsor logos or wordmarks. Handling is tuned by feel. Engine sound is synthesised per car in the browser (flat-four burble for the Impreza, different pitch and tone for the others), with anti-lag crackle, pops and exhaust flames when you lift off the throttle; no recordings are used.
 
 ## The mountain
 Generated, not real: the same road every run (fixed seed). Straights of 22 to 114 m alternate with 180-degree bends, climbing as you go. Forest gives way to rock, then snow, with altitude.
