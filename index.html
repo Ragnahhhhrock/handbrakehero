@@ -54,6 +54,14 @@ table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding
 @media(max-width:600px){#map{width:96px;height:96px}#prof{display:none}#credit{bottom:12px}#tl .t{font-size:30px}#note .now{font-size:24px;min-width:140px}#spd .v{font-size:44px}#note{top:84px}}
 #msg.perfect{color:#ffd400}#msg.warn{color:#ff6b6b}#msg{white-space:nowrap}
 #last{font-size:15px;opacity:.9;margin-top:2px}
+#coach{left:50%;bottom:150px;transform:translateX(-50%);text-align:center;display:none;width:min(560px,92vw)}
+#coach .step{font-size:clamp(24px,4vw,38px);font-weight:800;line-height:1;text-transform:uppercase;background:#0b1220dd;border-bottom:6px solid var(--red);padding:8px 16px}
+#coach .step.hb{background:#ffd400;color:#0b1220;border-color:#0b1220;text-shadow:none}
+#coach .why{font-size:16px;margin-top:6px;background:#0b1220aa;padding:4px 10px;display:inline-block}
+#coach .chips{display:flex;gap:8px;justify-content:center;margin-bottom:8px}
+#coach .chips i{font-style:normal;font-weight:800;font-size:14px;padding:1px 8px;border:2px solid #fff6;background:#0b1220aa;opacity:.5}
+#coach .chips i.on{opacity:1;background:#fff;color:#0b1220;border-color:#fff}
+#coach .chips i.on.hb{background:#ffd400}
 #hbI{display:inline-block;background:#ffd400;color:#0b1220;font-weight:800;font-size:18px;padding:0 8px;margin-right:8px;vertical-align:top;opacity:.18;text-shadow:none}
 #tl .s{max-width:60vw}
 </style>
@@ -66,6 +74,7 @@ table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding
 <canvas class="hud" id="map" width="300" height="300"></canvas>
 <div class="hud" id="spd"><span id="hbI">HANDBRAKE</span><span class="v" id="kmh">0</span><span class="g" id="gear">N</span><div class="u" id="alt">km/h</div><div id="rpm"><i id="rpmBar" style="width:0"></i></div></div>
 <div class="hud" id="msg"></div>
+<div class="hud" id="coach"><div class="chips"><i id="cB">↓ BRAKE</i><i id="cS">← → STEER</i><i id="cH">SPACE · HANDBRAKE</i><i id="cT">↑ THROTTLE</i></div><div class="step" id="cStep"></div><div class="why" id="cWhy"></div></div>
 <div id="touch"><button id="tL" style="left:16px">◀</button><button id="tR" style="left:100px">▶</button><button id="tB" style="right:100px">BRK</button><button id="tG" style="right:16px">GAS</button><button id="tH" style="right:58px;bottom:176px">HB</button></div>
 
 <div class="card" id="start" hidden><div class="in">
@@ -86,7 +95,7 @@ table{border-collapse:collapse;width:100%;font-size:20px;margin:8px 0}td{padding
   <div class="keys" id="carInfo" style="margin:0 0 6px"></div>
   <label><input type="checkbox" id="voice" checked> Co-driver calls the hairpins</label>
   <label><input type="checkbox" id="sound" checked> Engine, tyre and anti-lag pops</label>
-  <div class="row"><button class="go" id="goBtn">Start climb</button></div>
+  <div class="row"><button class="go" id="goBtn">Start climb</button><button id="tutBtn">Tutorial: learn the handbrake turn</button></div>
   <div id="best" class="keys"></div>
   <div class="keys">↑/W throttle · ↓/S brake &amp; reverse · ←→/AD steer · Space handbrake<br>C camera · I isometric · V voice · R back on the road (+4 s) · Esc menu · gamepad: stick, triggers, A handbrake</div>
 </div></div>
@@ -343,21 +352,41 @@ function update(dt){
         const label=hpHits?(T<=PAR*1.15?'TOUCHED THE WALL':'SLOPPY'):(T<=PAR&&clean?'PERFECT 180':T<=PAR*1.13?'GREAT':T<=PAR*1.33?'GOOD':'SLOW');
         flash(label+'  '+T.toFixed(2)+' s',1700,label.startsWith('PERFECT')?'perfect':label==='SLOW'||label==='SLOPPY'?'warn':'');
         $('#last').textContent=`Hairpin ${hp.k+1}: ${T.toFixed(2)} s · exit ${Math.round(vx*3.6)} km/h · ${label}`;
-        hpI++;spoke=-1;updHud();
-        if(goal>0&&hpI>=goal)finishRun()}}
+        if(tutorial){const dh=hbAt,v0=hpVmax*3.6;let tip=hpHits?'You hit the wall: brake earlier or start the handbrake sooner.':T<=PAR*1.15?'Clean turn. Now try holding it with less brake.':'Slow turn: hold the handbrake until the car has rotated far enough, then release.';
+          if(dh===null)tip='You never used the handbrake. Hold SPACE when the coach says HANDBRAKE NOW.';else if(dh>16)tip='Handbrake was early: wait for the prompt.';else if(dh<-2)tip='Handbrake was late: press it as the prompt appears.';
+          flash('Tip: '+tip,3200)}hbAt=null;hpI++;spoke=-1;updHud();
+        if(tutorial&&hpI>=goal){tutorial=false;$('#coach').style.display='none';goal=+(document.querySelector('[data-g][aria-pressed=true]')||{dataset:{g:10}}).dataset.g;state='fin';$('#finT').textContent='Tutorial complete';$('#finTab').innerHTML=`<tr><td>Hairpins practised</td><td>${hpRes.length}</td></tr><tr><td>Best hairpin</td><td>${Math.min(...hpRes.map(r=>r.t)).toFixed(2)} s</td></tr><tr><td>Wall hits</td><td>${hits}</td></tr>`;setTimeout(()=>{$('#fin').hidden=false},1200)}else if(goal>0&&hpI>=goal)finishRun()}}
     const nh=HPS[hpI];if(nh){const dist=(nh.sIn+6-C.idx)*ds;if(dist<180&&spoke!==hpI){spoke=hpI;say('hairpin '+nh.dir)}
-      $('#nNow').textContent=noteFor(nh);$('#nNext').textContent=dist>0?Math.round(dist/10)*10+' m':'NOW'}}
+      $('#nNow').textContent=noteFor(nh);$('#nNext').textContent=dist>0?Math.round(dist/10)*10+' m':'NOW'}
+    coachUpdate()}
   else if(state!=='fin'){track()}
+}
+// ---------- tutorial coach ----------
+function coachUpdate(){const el=$('#coach');if(!tutorial){el.style.display='none';return}el.style.display='block';
+  const hp=HPS[hpI];if(!hp)return;const v=Math.max(C.vf,0),dIn=(hp.s0-C.idx)*ds,sg=hp.dir==='right'?1:-1,rot=sg*wrapA(C.H-Math.atan2(TX[hp.s0],-TZ[hp.s0])),
+    dTurn=Math.max(10,v*0.5),dHB=Math.max(6,v*0.33),lane=sg>0?'left':'right';
+  let step,why,on='T',hbs=false;
+  if(hpIn&&rot>1.9){step='RELEASE · FULL THROTTLE';why='Nose is pointing up the next straight. Let go of Space, straighten the wheel and floor it.';on='T'}
+  else if(hpIn&&C.hb&&rot>0.15){step='HOLD SPACE · KEEP STEERING';why='Keep the wheel '+hp.dir+' and keep Space down until the car has turned about 110°.';on='SH';hbs=true}
+  else if(dIn<=dHB&&dIn>-8&&rot<0.9){step='HANDBRAKE NOW';why='Press and hold SPACE while steering '+hp.dir+'. The tail will swing round.';on='SH';hbs=true}
+  else if(dIn<=dTurn&&dIn>-8&&rot<0.9){step='STEER '+hp.dir.toUpperCase();why='Turn in now. In a moment you will be told to hit the handbrake.';on='S'}
+  else if(dIn<=dTurn+Math.max(25,v*1.3)&&dIn>0&&v>13){step='BRAKE';why='Slow to about 50–60 km/h. Approach from the '+lane+' side of the road for a wider arc.';on='B'}
+  else if(dIn>0){step='ACCELERATE';why='Hairpin '+hp.dir+' ahead in '+Math.round(dIn/10)*10+' m. Build speed on the straight, then brake late.';on='T'}
+  else{step='STRAIGHTEN UP';why='Full throttle out of the corner.';on='T'}
+  $('#cStep').textContent=step;$('#cStep').className='step'+(hbs?' hb':'');$('#cWhy').textContent=why;
+  const on2=(id,k)=>{const e=$(id);e.className=on.includes(k)?'on'+(k==='H'?' hb':''):''};on2('#cB','B');on2('#cS','S');on2('#cH','H');on2('#cT','T');
+  if(on.includes('H')&&hbAt===null&&C.hb)hbAt=dIn;
 }
 function updHud(){const n=hpRes.length,a=n?hpRes.reduce((s,r)=>s+r.t,0)/n:0,b=n?Math.min(...hpRes.map(r=>r.t)):0;
   $('#sub').textContent=carDef.short+' · hairpin '+(Math.min(hpI+1,goal||1e9))+(goal?' / '+goal:'')+' · avg '+(n?a.toFixed(2):'–')+' s · best '+(n?b.toFixed(2):'–')+' s'}
+let tutorial=false,tutDone=false,hbAt=null;
 function start(){state='count';countdown=3;pen=0;clock=0;hpI=0;hpIn=false;hpHits=0;hpRes=[];hits=0;spoke=-1;
   resetWorld();placeAt(10);track();$('#last').textContent='';$('#nNow').textContent='—';$('#nNext').textContent='';updHud();$('#start').hidden=true;$('#fin').hidden=true;audioStart();if(ac&&ac.state==='suspended')ac.resume();say('Ready. Three, two, one.');camYaw=C.H}
 function finishRun(){state='fin';const t=clock+pen,k='hp-best-'+goal+'-'+carDef.id,b=parseFloat(store.get(k)),isBest=!(b<=t);if(isBest)store.set(k,t);
   const ts=hpRes.map(r=>r.t);$('#finT').textContent=fmt(t)+(isBest?' · best':'');
   $('#finTab').innerHTML=`<tr><td>Hairpins</td><td>${hpRes.length}</td></tr><tr><td>Average hairpin</td><td>${(ts.reduce((a,b)=>a+b,0)/ts.length).toFixed(2)} s</td></tr><tr><td>Best hairpin</td><td>${Math.min(...ts).toFixed(2)} s</td></tr><tr><td>Wall hits</td><td>${hits}</td></tr><tr><td>Penalties</td><td>${pen} s</td></tr><tr><td>Best run (${carDef.short}, ${goal} hairpins)</td><td>${fmt(isBest?t:b)}</td></tr>`;
   setTimeout(()=>{$('#fin').hidden=false},1200);say('Stage end.')}
-function toMenu(){state='menu';$('#start').hidden=false;$('#fin').hidden=true;showBest()}
+function toMenu(){tutorial=false;$('#coach').style.display='none';state='menu';$('#start').hidden=false;$('#fin').hidden=true;showBest()}
 
 // ---------- world reset ----------
 function resetWorld(){clearChunks();resetRoad();ensureRoad(480);placeAt(10);ensureChunks(99)}
@@ -447,7 +476,8 @@ $('#cars').innerHTML=CARS.map(c=>`<button data-car="${c.id}" aria-pressed="false
 document.querySelectorAll('[data-car]').forEach(b=>b.onclick=()=>pickCar(b.dataset.car));
 document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{cond=b.dataset.c;document.querySelectorAll('[data-c]').forEach(x=>x.setAttribute('aria-pressed',x===b));applyCond()});
 document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{goal=+b.dataset.g;document.querySelectorAll('[data-g]').forEach(x=>x.setAttribute('aria-pressed',x===b));showBest()});
-$('#goBtn').onclick=()=>{voice=$('#voice').checked;sound=$('#sound').checked;applyCond();start()};
+$('#goBtn').onclick=()=>{tutorial=false;goal=+(document.querySelector('[data-g][aria-pressed=true]')||{dataset:{g:10}}).dataset.g;voice=$('#voice').checked;sound=$('#sound').checked;applyCond();start()};
+$('#tutBtn').onclick=()=>{tutorial=true;goal=5;voice=$('#voice').checked;sound=$('#sound').checked;applyCond();start()};
 $('#again').onclick=start;$('#menu').onclick=toMenu;
 
 window.HP={C,K,step,update,get state(){return state},set state(v){state=v},get HPS(){return HPS},get hpRes(){return hpRes},PX:()=>PX,PZ:()=>PZ,TX:()=>TX,TZ:()=>TZ,selectCar,start,resetWorld,fire,alsUpdate,flames,dbg:()=>flames.map(f=>[f.life.toFixed(2),f.sp.visible,f.sp.position.x.toFixed(0),f.sp.position.y.toFixed(0),f.sp.position.z.toFixed(0),f.s.toFixed(1)]).filter(a=>a[1]).concat([[C.x.toFixed(0),C.y.toFixed(0),C.z.toFixed(0)]]),setPar:v=>PAR=v,get PAR(){return PAR},ds,RAD,HW,get clock(){return clock}};

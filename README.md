@@ -9,6 +9,9 @@ Brake late on the straight, turn in hard, tap **Space** to throw the tail round,
 
 Grades per hairpin (entry line 12 m before the bend to 12 m after): PERFECT 180 (≤ 3.9 s, no wall contact, straight exit), GREAT, GOOD, SLOW, plus wall-touch penalties in the label. Run lengths: 10 or 25 hairpins, or endless. Best times are stored in the browser per car.
 
+## Tutorial
+The start card has a **Tutorial** button: five practice hairpins with an on-screen coach that tells you when to accelerate, brake, steer in, hit the handbrake, hold it, and release, plus a tip after each bend. It does not count towards best times.
+
 ## Controls
 Arrows/WASD steer and throttle, **Space** handbrake, C camera, I isometric view, V voice, R back on the road (+4 s), Esc menu. Gamepad: stick, triggers, A handbrake.
 
