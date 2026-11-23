@@ -40,4 +40,4 @@ The earlier stage built from real road and elevation data is still here as `turi
 ## Rally 90s stages: loops and laps
 Every Rally 90s stage is a closed loop: the finish line is the start line. The loop is solved at build time (`closeLoop` in `index.html`: seeded corner-direction search, then a small harmonic correction so the road closes exactly with matching heading, and a minimum clearance check against itself). Elevation and road width are blended so there is no seam at the line.
 
-Championship is one lap per stage, as before. Practice mode has a lap selector (1, 2, 3 or 5): lap times and a best lap are tracked, with a results table at the end. Best stage times are kept per lap count.
+Championship is one lap per stage, as before. Practice mode has a lap selector (1, 2, 3 or 5): lap times and a best lap are tracked, with a results table at the end. Best stage times are kept per lap count. In Practice you are the only car on the stage: no rivals, no position HUD, no collisions with other cars.
