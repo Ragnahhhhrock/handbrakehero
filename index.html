@@ -209,9 +209,10 @@ const GRID0=70,RUNOUT=110;
 let ST=null,N=0,PX,PZ,PY,TX,TZ,KC,HWA,SFA,TUN,PROF,HASH,HASH2,PLAT=10,START_S=GRID0,FIN_S=0,CPS=[],SECT=[],world=null,chunks=new Map(),tunRange=null,waterM=null,minY=0;
 const HC=20,hk=(a,b)=>(a+1000)*8192+(b+1000);
 const dummy=new THREE.Object3D();
-const roadMat=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;x.fillStyle='#b8b8b8';x.fillRect(0,0,128,128);for(let i=0;i<3000;i++){const v=140+r()*90|0;x.fillStyle=`rgb(${v},${v},${v})`;x.fillRect(r()*128,r()*128,2,2)}
+const roadMat=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;x.fillStyle='#b8b8b8';x.fillRect(0,0,128,128);for(let i=0;i<3000;i++){const v=110+r()*140|0;x.fillStyle=`rgb(${v},${v},${v})`;x.fillRect(r()*128,r()*128,2,2)}x.fillStyle='rgba(0,0,0,.16)';for(let i=0;i<6;i++)x.fillRect(0,i*21+4,128,3);
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return new THREE.MeshLambertMaterial({map:t,vertexColors:true,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})})();
-const terrMat=new THREE.MeshLambertMaterial({vertexColors:true});
+const terrTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');let s=11;const r=()=>(s=(s*16807)%2147483647)/2147483647;x.fillStyle='#d8d8d8';x.fillRect(0,0,128,128);for(let i=0;i<900;i++){const v=150+r()*105|0;x.fillStyle=`rgb(${v},${v},${v})`;x.fillRect(r()*128,r()*128,3+r()*5,2)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1/2.5,1/2.5);return t})();
+const terrMat=new THREE.MeshLambertMaterial({vertexColors:true,map:terrTex});
 const postW=new THREE.MeshLambertMaterial({color:0xf2f2f2}),postR=new THREE.MeshLambertMaterial({color:0xd7192a});
 const chev=['>','<'].map(ch=>{const c=document.createElement('canvas');c.width=128;c.height=96;const x=c.getContext('2d');x.fillStyle='#111';x.fillRect(0,0,128,96);x.fillStyle='#ffd400';x.fillRect(0,0,128,6);x.fillRect(0,90,128,6);x.lineWidth=14;x.strokeStyle='#ffd400';x.beginPath();const a=ch==='>'?[34,14,86,48,34,82]:[94,14,42,48,94,82];x.moveTo(a[0],a[1]);x.lineTo(a[2],a[3]);x.lineTo(a[4],a[5]);x.stroke();return new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)})});
 function signTex(txt,chk){const c=document.createElement('canvas');c.width=512;c.height=96;const x=c.getContext('2d');x.fillStyle='#0b1220';x.fillRect(0,0,512,96);
@@ -275,7 +276,7 @@ function buildStage(si,laps){
   // road ribbon
   {const cols=[-1,-0.999,-.45,0,.45,.999,1],M=cols.length,NR=Lp+1,I0=G0,pos=new Float32Array(NR*M*3),col=new Float32Array(NR*M*3),uv=new Float32Array(NR*M*2),nor=new Float32Array(NR*M*3),idx=[];
     for(let r=0;r<NR;r++){const i=I0+r,hw=HWA[i],nx=-TZ[i],nz=TX[i],rc=SURF[SFA[i]].c,vg=ST.gA,h=((Math.sin(i*12.9)*43758.5)%1+1)%1*.06;
-      for(let c=0;c<M;c++){const o=cols[c],off=c===0?-hw-1.8:c===M-1?hw+1.8:o*hw,q=r*M+c;pos[q*3]=PX[i]+nx*off;pos[q*3+1]=PY[i]-(c===0||c===M-1?.06:0);pos[q*3+2]=PZ[i]+nz*off;nor[q*3+1]=1;uv[q*2]=off/6;uv[q*2+1]=i*ds/6;
+      for(let c=0;c<M;c++){const o=cols[c],off=c===0?-hw-1.8:c===M-1?hw+1.8:o*hw,q=r*M+c;pos[q*3]=PX[i]+nx*off;pos[q*3+1]=PY[i]-(c===0||c===M-1?.06:0);pos[q*3+2]=PZ[i]+nz*off;nor[q*3+1]=1;uv[q*2]=off/3;uv[q*2+1]=i*ds/3;
         let cc=c===0||c===M-1?vg:c===1||c===5?mix(vg,rc,.6):c===3?rc.map(v=>v*1.08):rc.map(v=>v*.84);cc=cc.map(v=>v*(1+h));col[q*3]=cc[0];col[q*3+1]=cc[1];col[q*3+2]=cc[2]}}
     for(let i=0;i<NR-1;i++)for(let c=0;c<M-1;c++){const a=i*M+c,b=a+M;idx.push(a,a+1,b,a+1,b+1,b)}
     const ge=new THREE.BufferGeometry();ge.setAttribute('position',new THREE.BufferAttribute(pos,3));ge.setAttribute('color',new THREE.BufferAttribute(col,3));ge.setAttribute('uv',new THREE.BufferAttribute(uv,2));ge.setAttribute('normal',new THREE.BufferAttribute(nor,3));ge.setIndex(idx);world.add(new THREE.Mesh(ge,roadMat))}
@@ -358,7 +359,7 @@ const matW=new THREE.MeshLambertMaterial({color:0xffffff}),canopyG=new THREE.Cyl
 function buildChunk(cx,cz){const x0=cx*CS,z0=cz*CS,pos=new Float32Array(NV*NV*3),col=new Float32Array(NV*NV*3),ndA=new Float32Array(NV*NV),idx=[];
   for(let j=0;j<NV;j++)for(let i=0;i<NV;i++){const x=x0+i*CELLS,z=z0+j*CELLS,y=terr(x,z),k=j*NV+i;pos[k*3]=x;pos[k*3+1]=y;pos[k*3+2]=z;ndA[k]=tNd}
   for(let j=0;j<NV-1;j++)for(let i=0;i<NV-1;i++){const a=j*NV+i;idx.push(a,a+NV,a+1,a+1,a+NV,a+NV+1)}
-  const ge=new THREE.BufferGeometry();ge.setAttribute('position',new THREE.BufferAttribute(pos,3));ge.setIndex(idx);ge.computeVertexNormals();const nor=ge.attributes.normal.array;
+  const ge=new THREE.BufferGeometry();ge.setAttribute('position',new THREE.BufferAttribute(pos,3));{const uvT=new Float32Array(NV*NV*2);for(let k=0;k<NV*NV;k++){uvT[k*2]=pos[k*3];uvT[k*2+1]=pos[k*3+2]}ge.setAttribute('uv',new THREE.BufferAttribute(uvT,2))}ge.setIndex(idx);ge.computeVertexNormals();const nor=ge.attributes.normal.array;
   for(let k=0;k<NV*NV;k++){const y=pos[k*3+1]-minY,ny=nor[k*3+1],nd=ndA[k],v=((Math.sin(pos[k*3]*12.9+pos[k*3+2]*7.7)*43758.5)%1+1)%1*.1;
     let c=ST.gA.map(a=>a*(1+v));c=mix(c,ST.gB.map(a=>a*(1+v)),Math.max(sstep(.9,.6,ny),sstep(60,160,y)*.7));
     if(ST.id==='mountain')c=mix(c,[.82,.85,.9],sstep(95,150,y)*sstep(.55,.85,ny)+sstep(150,200,y)*.5);
@@ -719,9 +720,9 @@ function poseCar(dt){const i=C.idx,gr=(PY[Math.min(i+1,N-1)]-PY[Math.max(i-1,0)]
   placeMesh(pCar,C.x,C.y,C.z,C.H,C.pitch,C.roll,C.vf*dt/.33,C.steer);playerGrp.position.set(0,0,0);
   const sp=Math.hypot(C.vx,C.vz),vh=Math.atan2(C.vx,-C.vz),tg=sp>6?vh:C.H,dy=wrapA(tg-camYaw);camYaw+=dy*(1-Math.exp(-dt*3.2));const cy=C.H+clamp(wrapA(camYaw-C.H),-.9,.9),fx=Math.sin(cy),fz=-Math.cos(cy);
   if(camMode===2){cam.position.set(C.x+Math.sin(C.H)*.3,C.y+1.2,C.z-Math.cos(C.H)*.3);camLook.set(C.x+Math.sin(C.H)*20,C.y+1,C.z-Math.cos(C.H)*20)}
-  else{const pk=ASP<1?1+Math.min(.35,(1-ASP)*.7):1,back=(camMode?11:7)*pk,hi=(camMode?4.8:2.7)*(1+(pk-1)*.8);tmp.set(C.x-fx*back,C.y+hi,C.z-fz*back);const th=terr(tmp.x,tmp.z)+1.2;if(tmp.y<th&&tNd>PLAT)tmp.y=th;
+  else{const pk=ASP<1?1+Math.min(.35,(1-ASP)*.7):1,back=(camMode?10:6.2)*pk,hi=(camMode?3.4:1.5)*(1+(pk-1)*.8);tmp.set(C.x-fx*back,C.y+hi,C.z-fz*back);const th=terr(tmp.x,tmp.z)+1.2;if(tmp.y<th&&tNd>PLAT)tmp.y=th;
     if(GS.mode==='run')cam.position.lerp(tmp,1-Math.exp(-dt*9));else cam.position.copy(tmp);{const lk=ASP<1?Math.min(1,(1-ASP)*2):0;camLook.set(C.x+fx*(5+lk*3),C.y+1.1-lk*.8,C.z+fz*(5+lk*3))}}
-  cam.lookAt(camLook);const wf=(camMode===2?74:62)+(ASP<1?Math.min(24,(1-ASP)*55):0)+Math.min(8,Math.abs(C.vf)*.1);if(Math.abs(cam.fov-wf)>.3){cam.fov=wf;cam.updateProjectionMatrix()}pCar.visible=camMode!==2;
+  cam.lookAt(camLook);const wf=(camMode===2?74:62)+(ASP<1?Math.min(24,(1-ASP)*55):0)+Math.min(16,Math.abs(C.vf)*.2);if(Math.abs(cam.fov-wf)>.3){cam.fov=wf;cam.updateProjectionMatrix()}pCar.visible=camMode!==2;
   sun.position.set(C.x+SUNV.x*300,C.y+SUNV.y*300,C.z+SUNV.z*300);sun.target.position.set(C.x,C.y,C.z);sun.target.updateMatrixWorld();if(waterM){waterM.position.x=C.x;waterM.position.z=C.z}if(backdrop)backdrop.position.set(cam.position.x,minY-10,cam.position.z)}
 function tick(dt){
   for(let i=GS.timers.length-1;i>=0;i--){const t=GS.timers[i];t.t-=dt;if(t.t<=0){GS.timers.splice(i,1);t.fn()}}
