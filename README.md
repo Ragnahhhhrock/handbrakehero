@@ -36,3 +36,8 @@ Generated, not real: the same road every run (fixed seed). Straights of 22 to 11
 
 ## Col de Turini
 The earlier stage built from real road and elevation data is still here as `turini.html` (needs `track.json`; see `tools/` for the data pipeline). Road © OpenStreetMap contributors (ODbL), elevation EU-DEM via OpenTopoData.
+
+## Rally 90s stages: loops and laps
+Every Rally 90s stage is a closed loop: the finish line is the start line. The loop is solved at build time (`closeLoop` in `index.html`: seeded corner-direction search, then a small harmonic correction so the road closes exactly with matching heading, and a minimum clearance check against itself). Elevation and road width are blended so there is no seam at the line.
+
+Championship is one lap per stage, as before. Practice mode has a lap selector (1, 2, 3 or 5): lap times and a best lap are tracked, with a results table at the end. Best stage times are kept per lap count.
