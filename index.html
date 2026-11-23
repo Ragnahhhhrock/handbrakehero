@@ -315,14 +315,21 @@ const spM=new THREE.MeshLambertMaterial({color:0xffffff});
 const spG={legs:new THREE.BoxGeometry(.34,.8,.22).translate(0,.4,0),torso:new THREE.BoxGeometry(.46,.72,.26).translate(0,1.16,0),head:new THREE.IcosahedronGeometry(.15,0).scale(1,1.15,1).translate(0,1.7,0),arm:new THREE.BoxGeometry(.11,.62,.11).translate(0,-.31,0)};Object.values(spG).forEach(g=>g.userData.keep=1);
 const SPSHIRT=[0xffd400,0xd7192a,0xffffff,0x1f6fe0,0x1b8a3a,0xff8a1a,0x111111,0xe86ab0,0x7ad0f0,0x8a2be2],SPSKIN=[0xf1c9a5,0xe0ac82,0xc68a62,0x9a6444,0x6e4630,0xffdbb8],SPJEANS=[0x2b3a55,0x1d2433,0x3d4f78,0x22262e,0x5a5446,0x38312b];
 const _m=new THREE.Matrix4(),_m2=new THREE.Matrix4(),_m3=new THREE.Matrix4(),_q=new THREE.Quaternion(),_q2=new THREE.Quaternion(),_v=new THREE.Vector3(),_v2=new THREE.Vector3(),_s=new THREE.Vector3(),_one=new THREE.Vector3(1,1,1),_AY=new THREE.Vector3(0,1,0),_AZ=new THREE.Vector3(0,0,1);
+// fan banners: some spectators hold both arms up with a banner between their hands
+const BANNERS=[['GO COLIN!','#ffd400','#0d3b9e'],['SUBARU 555','#ffffff','#1f4fd0'],['LANCIA FOREVER','#ffffff','#c0151f'],['FORD COSWORTH','#ffffff','#10306b'],['MAKINEN EVO!','#ffffff','#b5121b'],['TOYOTA CELICA','#ffffff','#d7192a'],['SAINZ NUMBER 1','#ffd400','#c0151f'],['SEND IT!','#111111','#ffd400'],['FLAT OUT!','#ffd400','#111111'],['HANDBRAKE HERO','#ffd400','#0b1220'],['GO GO GO!','#ffffff','#1b8a3a'],['KEEP IT PINNED','#111111','#ff8a1a'],['VIVA RALLY!','#ffffff','#d7192a'],['DELTA INTEGRALE','#ffffff','#1f3a2a'],['LANCER EVO III','#ffffff','#7a1018']];
+const bannerG=new THREE.PlaneGeometry(1.5,.75);bannerG.userData.keep=1;let BMATS=null;
+function bannerMats(){if(BMATS)return BMATS;return BMATS=BANNERS.map(([txt,ink,bg])=>{const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,512,256);x.strokeStyle=ink;x.lineWidth=10;x.strokeRect(10,10,492,236);
+  let px=120;x.font='800 '+px+'px "Barlow Condensed",Arial';while(x.measureText(txt).width>450&&px>30){px-=4;x.font='800 '+px+'px "Barlow Condensed",Arial'}x.fillStyle=ink;x.textAlign='center';x.textBaseline='middle';x.fillText(txt,256,132);
+  return new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:THREE.DoubleSide})})}
 function buildSpectators(list,rnd){const n=list.length;if(!n)return;
   const mk=g=>{const im=new THREE.InstancedMesh(g,spM,n);im.frustumCulled=false;world.add(im);return im};
-  const S={n,x:new Float32Array(n),y:new Float32Array(n),z:new Float32Array(n),yaw:new Float32Array(n),sc:new Float32Array(n),ph:new Float32Array(n),sp:new Float32Array(n),md:new Uint8Array(n),legs:mk(spG.legs),torso:mk(spG.torso),head:mk(spG.head),armL:mk(spG.arm),armR:mk(spG.arm)},c=new THREE.Color(),pick=a=>a[(rnd()*a.length)|0];
-  list.forEach((p,k)=>{S.x[k]=p[0];S.y[k]=p[1];S.z[k]=p[2];S.yaw[k]=p[3];S.sc[k]=(.9+rnd()*.2)*(rnd()<.1?.78:1);S.ph[k]=rnd()*6.283;S.sp[k]=4.2+rnd()*3.6;const r=rnd();S.md[k]=r<.34?0:r<.54?1:r<.7?2:r<.86?3:4;
+  const S={n,x:new Float32Array(n),y:new Float32Array(n),z:new Float32Array(n),yaw:new Float32Array(n),sc:new Float32Array(n),ph:new Float32Array(n),sp:new Float32Array(n),md:new Uint8Array(n),bn:new Uint8Array(n).fill(255),bi:new Int32Array(n),bm:[],legs:mk(spG.legs),torso:mk(spG.torso),head:mk(spG.head),armL:mk(spG.arm),armR:mk(spG.arm)},c=new THREE.Color(),pick=a=>a[(rnd()*a.length)|0],cnt=new Array(BANNERS.length).fill(0);
+  list.forEach((p,k)=>{S.x[k]=p[0];S.y[k]=p[1];S.z[k]=p[2];S.yaw[k]=p[3];S.sc[k]=(.9+rnd()*.2)*(rnd()<.1?.78:1);S.ph[k]=rnd()*6.283;S.sp[k]=4.2+rnd()*3.6;const r=rnd();S.md[k]=r<.34?0:r<.54?1:r<.7?2:r<.86?3:4;if(rnd()<.16){S.md[k]=5;const t=(rnd()*BANNERS.length)|0;S.bn[k]=t;S.bi[k]=cnt[t]++}
     const sh=pick(SPSHIRT),sk=pick(SPSKIN),sl=rnd()<.4?sk:sh;S.legs.setColorAt(k,c.set(pick(SPJEANS)));S.torso.setColorAt(k,c.set(sh));S.head.setColorAt(k,c.set(sk));S.armL.setColorAt(k,c.set(sl));S.armR.setColorAt(k,c.set(sl))});
   [S.legs,S.torso,S.head,S.armL,S.armR].forEach(m=>{m.instanceColor.needsUpdate=true});
+  {const mats=bannerMats();cnt.forEach((q,t)=>{if(!q){S.bm[t]=null;return}const im=new THREE.InstancedMesh(bannerG,mats[t],q);im.frustumCulled=false;world.add(im);S.bm[t]=im})}
   SPEC=S;animSpectators(0,0,0,0,0,true)}
-function animSpectators(t,px,pz,cx,cz,all){const S=SPEC;if(!S)return;const PI=Math.PI;let any=0,body=!!all;
+function animSpectators(t,px,pz,cx,cz,all){const S=SPEC;if(!S)return;const PI=Math.PI;let any=0,bany=0,body=!!all;
   for(let k=0;k<S.n;k++){const x=S.x[k],z=S.z[k];if(!all){const dx=x-cx,dz=z-cz;if(dx*dx+dz*dz>14400)continue}
     const dpx=x-px,dpz=z-pz,e=all?0:clamp(1-Math.sqrt(dpx*dpx+dpz*dpz)/55,0,1),ph=S.ph[k]+t*S.sp[k]*(1+e*.8),md=S.md[k],am=.32+.2*e;let aR,aL,jy=0;
     switch(md){
@@ -330,11 +337,14 @@ function animSpectators(t,px,pz,cx,cz,all){const S=SPEC;if(!S)return;const PI=Ma
       case 1:aR=PI-(.45+.4*Math.sin(ph*1.2));aL=-(.1+.05*Math.sin(ph*.6));break;
       case 2:aR=PI*(.74+.2*Math.sin(ph*1.3));aL=-PI*(.74+.2*Math.sin(ph*1.3+PI));break;
       case 3:jy=Math.abs(Math.sin(ph*.7))*(.06+.3*e);aR=PI-(.25+.25*Math.sin(ph*1.4));aL=-(PI-(.25+.25*Math.sin(ph*1.4+1.5)));body=true;break;
+      case 5:jy=e*.05*Math.abs(Math.sin(ph*.9));aR=PI-(.5+.06*Math.sin(ph*.8));aL=-(PI-(.5+.06*Math.sin(ph*.8+1)));body=true;break;
       default:{const r=.12+e*(PI-.7),w=.3*e*Math.sin(ph);aR=r+w;aL=-(r-w)}}
     const sc=S.sc[k];_q.setFromAxisAngle(_AY,S.yaw[k]);_v.set(x,S.y[k]+jy,z);_s.set(sc,sc,sc);_m.compose(_v,_q,_s);
-    if(md===3||all){S.legs.setMatrixAt(k,_m);S.torso.setMatrixAt(k,_m);S.head.setMatrixAt(k,_m)}
+    if(md===3||md===5||all){S.legs.setMatrixAt(k,_m);S.torso.setMatrixAt(k,_m);S.head.setMatrixAt(k,_m)}
     _m2.compose(_v2.set(.29,1.46,0),_q2.setFromAxisAngle(_AZ,aR),_one);_m3.multiplyMatrices(_m,_m2);S.armR.setMatrixAt(k,_m3);
-    _m2.compose(_v2.set(-.29,1.46,0),_q2.setFromAxisAngle(_AZ,aL),_one);_m3.multiplyMatrices(_m,_m2);S.armL.setMatrixAt(k,_m3);any=1}
+    _m2.compose(_v2.set(-.29,1.46,0),_q2.setFromAxisAngle(_AZ,aL),_one);_m3.multiplyMatrices(_m,_m2);S.armL.setMatrixAt(k,_m3);any=1;
+    if(md===5){_m2.compose(_v2.set(0,2.2,.08),_q2.setFromAxisAngle(_AZ,.07*Math.sin(ph*.8+.5)),_one);_m3.multiplyMatrices(_m,_m2);S.bm[S.bn[k]].setMatrixAt(S.bi[k],_m3);bany=1}}
+  if(bany)S.bm.forEach(m=>{if(m)m.instanceMatrix.needsUpdate=true});
   if(any){S.armL.instanceMatrix.needsUpdate=true;S.armR.instanceMatrix.needsUpdate=true;if(body){S.legs.instanceMatrix.needsUpdate=true;S.torso.instanceMatrix.needsUpdate=true;S.head.instanceMatrix.needsUpdate=true}}}
 let backdrop=null;
 function decorate(){
