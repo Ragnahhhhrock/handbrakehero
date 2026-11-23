@@ -1,28 +1,34 @@
-# Endless Hairpins
+# Handbrake Hero: Rally 90s Championship
 
-A browser game (three.js, single file): one mountain pass that is nothing but hairpins, climbing forever. Every hairpin is timed. The fast way round is a handbrake 180.
+A browser rally game (three.js, single `index.html`): three 1990s-style stages plus a bonus stage, 15 cars, a countdown clock, checkpoints and a rival field you have to catch. Play: serve the folder (`python3 -m http.server`) and open `index.html`.
 
-Play: open `index.html` (serve the folder, e.g. `python3 -m http.server`).
+## Driving model and driver aids
+The stick (or thumb drag) sets **how hard you want to corner**, as a fraction of the grip the tyres have, rather than a raw steering angle. A controller turns that into a target yaw rate and sets the front wheels (feed-forward plus feedback), so full stick can never exceed grip and the car does not snap sideways. Previously full lock was about five times what the tyres could use at speed, which made only the first 20% of the stick usable and was the main reason the game felt unforgiving.
 
-## How to drive a hairpin
-Brake late on the straight, turn in hard, tap **Space** to throw the tail round, let go as the nose points up the next straight, then full throttle. The yellow-on-black chevron boards mark the outside of each bend; the top-right radar shows the next hairpin in yellow.
+Three driver-aid levels, chosen on the title screen, the stage card and the pause menu (default **Relaxed**):
 
-Grades per hairpin (entry line 12 m before the bend to 12 m after): PERFECT 180 (≤ 3.9 s, no wall contact, straight exit), GREAT, GOOD, SLOW, plus wall-touch penalties in the label. Run lengths: 10 or 25 hairpins, or endless. Best times are stored in the browser per car.
+| Level | Road assist (neutral stick follows the road) | Corner speed | Spin protection | Handbrake |
+|---|---|---|---|---|
+| Relaxed | 78% | auto-lift and auto-brake to 90% of the grip profile | strong | controlled drift |
+| Standard | 40% | safety net above 106% of grip profile | medium | controlled drift |
+| Pro | none | none | light | raw |
 
-## Tutorial
-The start card has a **Tutorial** button: five practice hairpins with an on-screen coach that tells you when to accelerate, brake, steer in, hit the handbrake, hold it, and release, plus a tip after each bend. It does not count towards best times.
+- Road assist fades out as you push the stick, so you always have full authority.
+- **Handbrake / SLIDE** holds a controlled drift (slip angle about 20 to 35 degrees) instead of a spin. A clean slide of 0.7 s or more pays a time bonus in Championship ("DRIFT +1.4 SECONDS").
+- Walls scrub speed and push the car back parallel to the road rather than bouncing it around.
+
+Automated checks (`bot` driving through the same inputs a thumb produces; 3 skill levels, 3 stages): with the old handling a "good" bot hit walls 7 to 20 times per stage and spun out 10 times on Desert, a novice bot 17 to 25 walls and up to 15 spins; with Relaxed aids novice bots average 0.5 to 4 wall touches per stage and no spins, and finish in 1.07 to 1.16 times the reference time.
 
 ## Controls
-Arrows/WASD steer and throttle, **Space** handbrake, C camera, I isometric view, V voice, R back on the road (+4 s), Esc menu. Gamepad: stick, triggers, A handbrake.
+- **Keyboard:** arrows/WASD steer, gas and brake; Space handbrake; C camera; R back on road (-3 s); Esc pause.
+- **Touch:** drag anywhere on the left side to steer (a slider appears under your thumb); big **BRAKE** and **SLIDE** buttons for the right thumb; gas is automatic (switch it off under Driver aids for a GAS button); top right: pause, camera and back on road. Landscape and portrait layouts, safe-area insets for notches. The game pauses if the app goes to the background.
+- **Pause menu:** resume, restart stage (instant, no intro card), change driver aids or auto-throttle, camera, quit.
 
-## Mobile first
-The game is designed for phones, portrait or landscape. Touch layout switches on automatically.
-- Drag anywhere on the left side to steer (analog, relative to where your thumb lands). Big **HB** handbrake button bottom right, **BRAKE** beside it.
-- **Auto throttle** is on by default on touch (you steer, brake and handbrake); turn it off in the menu for a manual GAS button.
-- ☰ menu (tap twice to quit a run), ◉ camera, ⟲ back on road (+4 s).
-- Wider field of view and a higher, further-back chase camera in portrait; safe-area insets for notches; pixel ratio capped at 1.5 and lowered automatically if the frame rate drops.
-- Vibration on wall hits and perfect turns (Android Chrome; iOS Safari has no vibration API).
-- `manifest.webmanifest` and icons: add to home screen for full-screen play.
+## Keep-playing loop
+- **Medals** per stage (Bronze / Silver / Gold) against the stage's reference time. Relaxed tops out at Silver; Gold needs Standard or Pro.
+- **Splits:** each checkpoint shows your time against your best run on that stage.
+- **Try again credits:** in Championship, running out of the clock offers two "Try again" credits instead of ending the run ("So close, 83% of the stage").
+- Results show how many seconds you are from the next medal, and Retry is one tap.
 
 ## Cars
 Five period cars (Impreza 555, Delta Integrale Evo 2, Escort Cosworth, Lancer Evo III, Celica ST205), modelled in Blender by `models/build_cars.py` (writes `models/cars.blend`, a `.glb` per car, and `cars.json` for the game).
@@ -31,9 +37,6 @@ Each body is lofted from cross-sections driven by side-profile and plan-view cur
 
 Liveries are original colour schemes in team colours, with no sponsor logos or wordmarks. Handling is tuned by feel. Engine sound is synthesised per car in the browser (flat-four burble for the Impreza, different pitch and tone for the others), with anti-lag crackle, pops and exhaust flames when you lift off the throttle; no recordings are used.
 
-## The mountain
-Generated, not real: the same road every run (fixed seed). Straights of 22 to 114 m alternate with 180-degree bends, climbing as you go. Forest gives way to rock, then snow, with altitude.
-
 ## Col de Turini
 The earlier stage built from real road and elevation data is still here as `turini.html` (needs `track.json`; see `tools/` for the data pipeline). Road © OpenStreetMap contributors (ODbL), elevation EU-DEM via OpenTopoData.
 
@@ -41,3 +44,6 @@ The earlier stage built from real road and elevation data is still here as `turi
 Every Rally 90s stage is a closed loop: the finish line is the start line. The loop is solved at build time (`closeLoop` in `index.html`: seeded corner-direction search, then a small harmonic correction so the road closes exactly with matching heading, and a minimum clearance check against itself). Elevation and road width are blended so there is no seam at the line.
 
 Championship is one lap per stage, as before. Practice mode has a lap selector (1, 2, 3 or 5): lap times and a best lap are tracked, with a results table at the end. Best stage times are kept per lap count. In Practice you are the only car on the stage: no rivals, no position HUD, no collisions with other cars.
+
+## History
+The repo began as Endless Hairpins, a single mountain pass of nothing but hairpins; that build was replaced by the Rally 90s Championship (see git history).
