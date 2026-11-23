@@ -442,11 +442,14 @@ function bodyMesh(m){const nt=m.c.length,pos=new Float32Array(nt*9),col=new Floa
   for(let t=0;t<nt;t++)for(let k=0;k<3;k++){const vi=m.t[t*3+k]*3,o=t*9+k*3,c=pc[m.c[t]];pos[o]=m.v[vi]/1000;pos[o+1]=m.v[vi+1]/1000;pos[o+2]=m.v[vi+2]/1000;col[o]=c.r;col[o+1]=c.g;col[o+2]=c.b;nor[o]=m.n[o]/100;nor[o+1]=m.n[o+1]/100;nor[o+2]=m.n[o+2]/100}
   const ge=new THREE.BufferGeometry();ge.setAttribute('position',new THREE.BufferAttribute(pos,3));ge.setAttribute('color',new THREE.BufferAttribute(col,3));ge.setAttribute('normal',new THREE.BufferAttribute(nor,3));ge.normalizeNormals();ge.userData.keep=1;
   return new THREE.Mesh(ge,new THREE.MeshPhongMaterial({vertexColors:true,shininess:70,specular:0x333333}))}
-function carTemplate(id){if(tmpl[id])return tmpl[id];const m=CM[id],grp=new THREE.Group();grp.add(bodyMesh(m));
+const flameG=new THREE.ConeGeometry(.1,1,7).translate(0,.5,0).rotateX(Math.PI/2);flameG.userData.keep=1;
+const flameO=new THREE.MeshBasicMaterial({color:0xff5a00,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false}),flameI=new THREE.MeshBasicMaterial({color:0xffe9a0,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false});
+function carTemplate(id){if(tmpl[id])return tmpl[id];const m=CM[id],grp=new THREE.Group(),bm=bodyMesh(m);grp.add(bm);bm.geometry.computeBoundingBox();
+  {const fl=new THREE.Group();fl.name='flame';fl.position.set(-.42,.28,bm.geometry.boundingBox.max.z+.02);fl.add(new THREE.Mesh(flameG,flameO));const inn=new THREE.Mesh(flameG,flameI);inn.scale.set(.5,.5,.6);fl.add(inn);fl.visible=false;fl.userData={t:0,s:1};grp.add(fl)}
   const tail=new THREE.MeshBasicMaterial({color:0x550000});m.tail.forEach(([x,y,z,w,h])=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),tail);p.position.set(x,y,z);grp.add(p)});
   [[-.8,-m.A],[.8,-m.A],[-.8,m.B],[.8,m.B]].forEach(([x,z],k)=>{const p=new THREE.Group();p.position.set(x,.33,z);p.name=k<2?'wf':'wr';const sp=new THREE.Group();sp.name='spin';sp.add(new THREE.Mesh(wheelTyreG,wheelTyreM),new THREE.Mesh(wheelRimG,wheelRimM));p.add(sp);grp.add(p)});
   return tmpl[id]=grp}
-function makeCar(id){const g=carTemplate(id).clone(true);g.userData.spins=[];g.userData.fronts=[];g.traverse(o=>{if(o.name==='spin')g.userData.spins.push(o);if(o.name==='wf')g.userData.fronts.push(o)});
+function makeCar(id){const g=carTemplate(id).clone(true);g.userData.spins=[];g.userData.fronts=[];g.traverse(o=>{if(o.name==='flame')g.userData.flame=o;if(o.name==='spin')g.userData.spins.push(o);if(o.name==='wf')g.userData.fronts.push(o)});
   return g}
 const playerGrp=new THREE.Group(),aiGrp=new THREE.Group();scene.add(playerGrp,aiGrp);
 let carDef=CARS[0],pCar=null,AIS=[];
@@ -500,33 +503,42 @@ function audioStart(){if(ac||!sound)return;try{ac=new(window.AudioContext||windo
   osc1.connect(filt);const g2=ac.createGain();g2.gain.value=.5;osc2.connect(g2);g2.connect(filt);filt.connect(gainN);gainN.connect(ac.destination);osc1.start();osc2.start();
   const b=ac.createBuffer(1,ac.sampleRate,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const ns=ac.createBufferSource();ns.buffer=b;ns.loop=true;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1500;nGain=ac.createGain();nGain.gain.value=0;ns.connect(bp);bp.connect(nGain);nGain.connect(ac.destination);ns.start();audInit()}catch(e){ac=null}}
 // ---- extra audio: turbo whistle, wastegate flutter, anti-lag pops and crackle, gravel spray, rocks in the wheel arch, crowd roar
-const AUD={fx:null,nb:null,boost:0,on:0,gi:0,cd:0,acc:{spray:0,arch:0,crack:0},pw:0,cl:[]},GSH=[0,14,24,33,42,51,62],LOOSE={s:.85,m:.55,d:1,l:1,g:1,b:0};
+const AUD={ef:40,lp:1,fq:[],fx:null,nb:null,boost:0,on:0,gi:0,cd:0,acc:{spray:0,arch:0,crack:0},pw:0,cl:[]},EP={imp:{k:.8,lp:.75,box:1},del:{k:.95,lp:1,box:0},esc:{k:.9,lp:1.05,box:0},lan:{k:1,lp:1.1,box:0},cel:{k:1.08,lp:1.15,box:0}},GSH=[0,14,24,33,42,51,62],LOOSE={s:.85,m:.55,d:1,l:1,g:1,b:0};
 function audInit(){try{
   const nb=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;AUD.nb=nb;
   const comp=ac.createDynamicsCompressor();comp.threshold.value=-16;comp.knee.value=12;comp.ratio.value=5;comp.attack.value=.003;comp.release.value=.2;const fx=ac.createGain();fx.gain.value=1;fx.connect(comp);comp.connect(ac.destination);AUD.fx=fx;
   const loop=(type,f,q)=>{const s=ac.createBufferSource();s.buffer=nb;s.loop=true;const b=ac.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;const g=ac.createGain();g.gain.value=0;s.connect(b);b.connect(g);g.connect(fx);s.start(0,Math.random()*1.5);return{b,g}};
   AUD.gr=loop('bandpass',2200,.7);AUD.air=loop('highpass',5200,.7);
   {const s=ac.createBufferSource();s.buffer=nb;s.loop=true;const b=ac.createBiquadFilter();b.type='bandpass';b.frequency.value=900;b.Q.value=.5;const mod=ac.createGain();mod.gain.value=.7;const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=4.3;lg.gain.value=.3;lfo.connect(lg);lg.connect(mod.gain);const g=ac.createGain();g.gain.value=0;s.connect(b);b.connect(mod);mod.connect(g);g.connect(fx);s.start(0,Math.random()*1.5);lfo.start();AUD.roar={b,g}}
+  {const o=ac.createOscillator(),g=ac.createGain(),lfo=ac.createOscillator(),lg=ac.createGain();o.type='square';o.frequency.value=40;g.gain.value=0;lfo.frequency.value=20;lg.gain.value=0;lfo.connect(lg);lg.connect(g.gain);o.connect(g);g.connect(filt);o.start();lfo.start();AUD.bx={o,g,lfo,lg}}
   {const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=2000;g.gain.value=0;o.connect(g);g.connect(fx);o.start();AUD.wh={o,g}}
 }catch(e){AUD.fx=null}}
 function burst(o){const t=o.t||ac.currentTime,dur=o.dur||.05,s=ac.createBufferSource();s.buffer=AUD.nb;const b=ac.createBiquadFilter();b.type=o.type||'bandpass';b.frequency.value=o.f;b.Q.value=o.q||1;const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(o.v,t+(o.atk||.002));g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(b);b.connect(g);let out=g;if(o.pan!=null&&ac.createStereoPanner){const p=ac.createStereoPanner();p.pan.value=o.pan;g.connect(p);out=p}out.connect(AUD.fx);s.start(t,Math.random()*1.8,dur+.02)}
 function thump(f0,f1,dur,v,t,type){const o=ac.createOscillator(),g=ac.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(AUD.fx);o.start(t);o.stop(t+dur+.02)}
-function pop(t,big){if(big){burst({t,f:700+Math.random()*500,q:.7,type:'lowpass',dur:.09+Math.random()*.05,v:.26,atk:.001});thump(140,45,.12,.2,t);burst({t,f:3000,q:1.2,dur:.03,v:.1})}else{burst({t,f:1400+Math.random()*2600,q:1.5,dur:.025+Math.random()*.03,v:.07+Math.random()*.1,atk:.0008});if(Math.random()<.4)thump(220,90,.05,.08,t)}}
-function popRun(n,boost){let t=ac.currentTime+.02;for(let k=0;k<n;k++){pop(t,Math.random()<.28+boost*.2);t+=.03+Math.random()*.07*(1+k*.12)}}
+function pop(t,big,vol){vol=vol==null?1:vol;AUD.fq.push([t,big]);if(big){burst({t,f:700+Math.random()*500,q:.7,type:'lowpass',dur:.1+Math.random()*.06,v:.42*vol,atk:.001});thump(150,40,.14,.32*vol,t);burst({t,f:2600+Math.random()*1200,q:.8,type:'highpass',dur:.05,v:.2*vol,atk:.0006})}else{burst({t,f:1400+Math.random()*2600,q:1.5,dur:.025+Math.random()*.03,v:(.08+Math.random()*.12)*vol,atk:.0008});if(Math.random()<.45)thump(230,90,.05,.1*vol,t)}}
+function popRun(n,boost){let t=ac.currentTime+.02;for(let k=0;k<n;k++){pop(t,Math.random()<.45+boost*.25);t+=.03+Math.random()*.07*(1+k*.12)}}
 function flutter(b){const t0=ac.currentTime,n=4+Math.round(b*6);let t=t0+.02;for(let k=0;k<n;k++){const v=.16*Math.pow(.88,k)*(.4+.6*b);burst({t,f:2400+Math.random()*500-k*70,q:3,dur:.045,v,atk:.003});thump(3300-k*120,2100-k*80,.04,v*.35,t);t+=.055+k*.006+Math.random()*.012}burst({t:t0+.02,f:4200,q:.6,type:'highpass',dur:.5,v:.05*b,atk:.01})}
 function whoop(t){const o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain(),f0=230+Math.random()*220,d=.35+Math.random()*.4;o.type='sawtooth';o.frequency.setValueAtTime(f0,t);o.frequency.linearRampToValueAtTime(f0*1.35,t+d*.5);o.frequency.linearRampToValueAtTime(f0*1.1,t+d);f.type='bandpass';f.frequency.value=900+Math.random()*500;f.Q.value=2.2;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.03,t+.08);g.gain.linearRampToValueAtTime(0,t+d);o.connect(f);f.connect(g);if(ac.createStereoPanner){const p=ac.createStereoPanner();p.pan.value=(Math.random()*2-1)*.8;g.connect(p);p.connect(AUD.fx)}else g.connect(AUD.fx);o.start(t);o.stop(t+d+.02)}
-function audMute(){if(!ac||!AUD.fx)return;const t=ac.currentTime;[AUD.gr.g,AUD.roar.g,AUD.air.g,AUD.wh.g].forEach(g=>g.gain.setTargetAtTime(0,t,.03));AUD.boost=0;AUD.on=0}
+function fireFlame(car,size){const f=car.userData.flame;if(f){f.userData.t=.07+Math.random()*.07;f.userData.s=size}}
+function flameAnim(car,dt){const f=car.userData.flame;if(!f)return;if(f.userData.t>0){f.userData.t-=dt;f.visible=true;f.scale.set(.7+Math.random()*.6,.7+Math.random()*.6,f.userData.s*(.5+Math.random()*.9))}else f.visible=false}
+function updFlames(dt){const t=ac?ac.currentTime:0;while(AUD.fq.length&&AUD.fq[0][0]<=t+.01){const q=AUD.fq.shift();if(pCar&&(q[1]||Math.random()<.5))fireFlame(pCar,q[1]?1.6:.6)}
+  if(pCar)flameAnim(pCar,dt);
+  for(const a of GS.practice?[]:AIS){if(a.pv!=null&&a.mesh.visible&&(a.pv-a.v)/dt>2.5&&Math.random()<dt*7){const big=Math.random()<.45;fireFlame(a.mesh,big?1.5:.7);const d=Math.hypot(a.x-C.x,a.z-C.z);if(ac&&AUD.fx&&d<45&&GS.mode==='run'){const n=AUD.fq.length;pop(ac.currentTime,big,clamp(1-d/45,0,1)*.5);AUD.fq.length=n}}a.pv=a.v;flameAnim(a.mesh,dt)}}
+function audMute(){if(!ac||!AUD.fx)return;const t=ac.currentTime;[AUD.gr.g,AUD.roar.g,AUD.air.g,AUD.wh.g,AUD.bx.g].forEach(g=>g.gain.setTargetAtTime(0,t,.03));AUD.boost=0;AUD.on=0;AUD.fq.length=0}
 function audUpdate(dt,play){if(!play||!ST||PAUSED){audMute();return}
   const t=ac.currentTime,v=Math.abs(C.vf),ix=Math.min(C.idx,N-1),off=Math.abs(C.lat)>HWA[ix]+.4,loose=off?1:(LOOSE[SFA[ix]]||0),slip=clamp(Math.abs(C.vr)/7,0,1),run=GS.mode==='run';
   let gi=GSH.findIndex((x,k)=>k<6&&v<GSH[k+1]);if(gi<0)gi=5;const rpm=clamp(.2+(v-GSH[gi])/(GSH[gi+1]-GSH[gi])*.75,.15,1);
+  {const e=EP[carDef.id]||EP.del,rr=900+(rpm-.15)/.85*7000,f=rr/30*e.k;AUD.ef=f;AUD.lp=e.lp;
+    // boxer: unequal-length headers give the lopsided burble, a beating 3:4 partial plus a slow amplitude wobble
+    AUD.bx.o.frequency.setTargetAtTime(f*.75,t,.04);AUD.bx.g.gain.setTargetAtTime(e.box*.35,t,.1);AUD.bx.lfo.frequency.setTargetAtTime(Math.max(3,f*.5),t,.05);AUD.bx.lg.gain.setTargetAtTime(e.box*.25,t,.1)}
   // turbo: boost builds with throttle and revs, spools down on lift
   const tg=run&&C.thr>.12&&v>2?C.thr*clamp(.25+rpm*.9,0,1):0;AUD.boost+=(tg-AUD.boost)*Math.min(1,dt*(tg>AUD.boost?2.2:3.2));const b=AUD.boost;
   AUD.wh.o.frequency.setTargetAtTime(1500+b*2700+rpm*1300,t,.05);AUD.wh.g.gain.setTargetAtTime(.035*Math.pow(b,1.6),t,.05);AUD.air.g.gain.setTargetAtTime(.02*b*b,t,.08);
   // lift off at speed: wastegate flutter plus anti-lag pops and bangs
   AUD.cd-=dt;if(C.thr>.7)AUD.on=1;
-  if(run&&AUD.on&&C.thr<.35&&v>10&&AUD.cd<=0){AUD.on=0;AUD.cd=.5;const hb=Math.max(b,.25);if(b>.35)flutter(b);popRun(4+Math.round(hb*7),hb)}
+  if(run&&AUD.on&&C.thr<.35&&v>10&&AUD.cd<=0){AUD.on=0;AUD.cd=.5;const hb=Math.max(b,.25);if(b>.35)flutter(b);popRun(6+Math.round(hb*8),hb)}
   // overrun crackle while off the throttle
-  if(run&&C.thr<.3&&v>13&&rpm>.3){AUD.acc.crack+=dt*(3+rpm*9+(C.brk?5:0)+b*14);let n=0;while(AUD.acc.crack>=1&&n++<4){AUD.acc.crack--;pop(t+Math.random()*.03,Math.random()<.12)}}else AUD.acc.crack=0;
+  if(run&&C.thr<.3&&v>13&&rpm>.3){AUD.acc.crack+=dt*(3+rpm*9+(C.brk?5:0)+b*14);let n=0;while(AUD.acc.crack>=1&&n++<4){AUD.acc.crack--;pop(t+Math.random()*.03,Math.random()<.2)}}else AUD.acc.crack=0;
   // upshift: a couple of bangs and a small flutter
   if(gi>AUD.gi&&run&&C.thr>.45){popRun(2+((Math.random()*3)|0),.5);if(b>.3)flutter(Math.min(1,b*.8))}AUD.gi=gi;
   // gravel: rolling hiss, stones sprayed up, rocks hitting the wheel arch
@@ -838,8 +850,8 @@ function tick(dt){
       const sl=Math.abs(C.vr)>5.5&&Math.abs(C.vf)>14&&!C.air;if(sl){if(!C._sl)C._wallD=0;C._sl=(C._sl||0)+dt;if(C._sl>1&&!C._slg){C._slg=1;GS.events.push({si:GS.stage,t:rt,w:2.2,type:'slide'})}}else{if(C._sl>.7&&!C._wallD){const bn=Math.min(2.5,C._sl*.7);if(!GS.practice)tl+=bn;GS.drift=(GS.drift||0)+bn;flash('DRIFT<br><small>'+(GS.practice?C._sl.toFixed(1)+' s':'+'+bn.toFixed(1)+' SECONDS')+'</small>',900,'y');if(ac)beep(1000,.08)}C._sl=0;C._slg=0}}
     callNotes();note();hudUpdate();ensureChunks(C.x,C.z,2,3);
     const tf=tunnelFactor(C.idx);lightFor(tf);
-    (GS.practice?[]:AIS).forEach(a=>{placeMesh(a.mesh,a.x,a.y,a.z,a.H,0,0,a.v*dt/.33,0)});poseCar(dt);animSpectators(performance.now()/1000,C.x,C.z,cam.position.x,cam.position.z);
-    if(ac&&gainN){const f=45+clamp(Math.abs(C.vf)/50,0,1)*180,t=ac.currentTime;osc1.frequency.setTargetAtTime(f,t,.04);osc2.frequency.setTargetAtTime(f*.5,t,.04);filt.frequency.setTargetAtTime(400+f*8*(.5+.5*C.thr),t,.05);gainN.gain.setTargetAtTime(play?.05+C.thr*.06:0,t,.1);nGain.gain.setTargetAtTime(Math.abs(C.vr)>2&&!C.air?clamp((Math.abs(C.vr)-2)/8,0,1)*.08:0,t,.05)}if(ac&&AUD.fx)audUpdate(dt,play)}else if(ac&&AUD.fx)audMute()
+    (GS.practice?[]:AIS).forEach(a=>{placeMesh(a.mesh,a.x,a.y,a.z,a.H,0,0,a.v*dt/.33,0)});poseCar(dt);animSpectators(performance.now()/1000,C.x,C.z,cam.position.x,cam.position.z);updFlames(dt);
+    if(ac&&gainN){const f=AUD.ef,t=ac.currentTime;osc1.frequency.setTargetAtTime(f,t,.04);osc2.frequency.setTargetAtTime(f*.5,t,.04);filt.frequency.setTargetAtTime((400+f*8*(.5+.5*C.thr))*AUD.lp,t,.05);gainN.gain.setTargetAtTime(play?.05+C.thr*.06:0,t,.1);nGain.gain.setTargetAtTime(Math.abs(C.vr)>2&&!C.air?clamp((Math.abs(C.vr)-2)/8,0,1)*.08:0,t,.05)}if(ac&&AUD.fx)audUpdate(dt,play)}else if(ac&&AUD.fx)audMute()
 }
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;if(!window.__pause&&!PAUSED)tick(dt);R.render(scene,cam)}
 window.RALLY={GS,C,tick,ASSISTS,setAssist,get LV(){return LV},get AIS(){return AIS},get ST(){return ST},get N(){return N},get PROF(){return PROF},get HWA(){return HWA},TXs:i=>TX[i],TZs:i=>TZ[i],pathAt,get KC(){return KC},get ds(){return ds},get tl(){return tl},get refTime(){return ST&&ST.refTime},get rt(){return rt},set AUTO(v){AUTO=v},newGame,buildStage,setupGrid,startStage,K,STAGES,get SECT(){return SECT},selectCar,startPractice,practiceMenu,crown,startReplay,initials,scores,get tunRange(){return tunRange},get FIN_S(){return FIN_S},get LAPS(){return LAPS},get lapNo(){return lapNo},get lapTimes(){return lapTimes},get CPS(){return CPS},go(){hideCard();GS.mode='count';countdown=.5;document.body.classList.add('playing')},skipCards(){card.querySelector('#go')&&card.querySelector('#go').click()},get cardHTML(){return card.innerHTML},pause(v){window.__pause=v}};
