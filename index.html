@@ -178,7 +178,7 @@ function mkPlan(len,items){let hpL=0,fs=0;items.forEach(it=>{if(it.hp)hpL+=Math.
   items.forEach(it=>{if(it.hp)segs.push({len:Math.PI*it.hp,k:it.dir/it.hp,hp:1});else segs.push({len:it[0]*mpf,k:it[1],tun:it[2]||0})});segs.push({len:RUNOUT+300,k:0});return segs}
 const fr=(s,len)=>(s-GRID0)/len;
 const STAGES=[
- {id:'desert',name:'DESERT',sub:'Dune Run',diff:1,len:1500,hw:7,seed:11,vmax:56,th0:0,sky:0x5f9fee,fog:0xe6dcb8,fogN:120,fogF:600,gA:[.58,.6,.32],gB:[.76,.56,.36],hill:7,deco:'acacia',skill:.93,cpf:[.41,.74],
+ {id:'desert',jumps:[640,1050,1390],name:'DESERT',sub:'Dune Run',diff:1,len:1500,hw:7,seed:11,vmax:56,th0:0,sky:0x5f9fee,fog:0xe6dcb8,fogN:120,fogF:600,gA:[.58,.6,.32],gB:[.76,.56,.36],hill:7,deco:'acacia',skill:.93,cpf:[.41,.74],
   light:{hemi:0xfff0d0,hg:0x6a5a3a,hi:.9,sun:0xfff1d6,si:1.1,dir:[-.5,.7,.5]},peaks:{col:[.52,.5,.56],cap:null,n:9,h0:50,h1:110},town:'village',
   banks:[[.28,.40,1,5],[.52,.62,-1,6],[.70,.80,1,7]],fence:[],crowd:[.22,.3,.55,.78],
   plan(){return mkPlan(this.len,[[.09,0],[.06,1/340],[.05,0],[.08,-1/300],[.04,0],[.04,1/300],[.04,-1/280],[.03,0],[.12,1/240],[.04,0],[.05,-1/260],[.04,-1/200],[.03,0],[.05,1/240],[.05,-1/220],[.05,0],[.08,1/340],[.06,0]])},
@@ -312,9 +312,10 @@ let backdrop=null;
 function decorate(){
   const rnd=rng(ST.seed*7+1),side=(i,sd,off)=>[PX[i]-TZ[i]*sd*off,PZ[i]+TX[i]*sd*off],ang=i=>Math.atan2(TX[i],-TZ[i]),at=f=>Math.round((GRID0+f*ST.len)/ds),LE=GRID0+ST.len;
   // pace-note signs: colour shows how hard the corner is
+  NOTES.length=0;callDone.clear();(ST.jumps||[]).forEach(j=>NOTES.push({i:Math.round(j/ds),c:'jump'}));
   {let inC=false,cs=0,pk=0,lo=0,lastSign=-99;for(let i=Math.floor(GRID0/ds)-20;i<Math.floor(GRID0/ds)+Math.round(ST.len/ds);i++){const k=Math.abs(KC[i]);
     if(k>1/170){if(!inC){inC=true;cs=i;pk=0}if(k>pk)pk=k;lo=0}else if(inC&&++lo>4){inC=false;const Rm=1/pk,sgn=Math.sign(KC[Math.round((cs+i)/2)]);const si=cs-30;
-      if(si>8&&si-lastSign>18){lastSign=si;const col=Rm>95?'#1f6fe0':Rm>48?'#ffd400':Rm>26?'#ff7a1a':'#e02020',[bx,bz]=side(si,1,HWA[si]+1.9);
+      if(si>8&&si-lastSign>18){lastSign=si;NOTES.push({i:si,c:(Rm<20?'hairpin':Rm>95?'easy':Rm>48?'medium':'hard')+'_'+(sgn<0?'left':'right')});const col=Rm>95?'#1f6fe0':Rm>48?'#ffd400':Rm>26?'#ff7a1a':'#e02020',[bx,bz]=side(si,1,HWA[si]+1.9);
         const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.7,1.7),signMat(col,sgn,Rm<20?1:0));sg.position.set(bx,PY[si]+2.2,bz);sg.rotation.y=Math.atan2(-TX[si],-TZ[si]);world.add(sg);const pl=new THREE.Mesh(new THREE.BoxGeometry(.1,2.4,.1),postW);pl.position.set(bx,PY[si]+1.2,bz);world.add(pl)}}}}
   // start and finish areas: hoardings, banner poles, spectators
   const BC=[0xd7192a,0x1b8a3a,0xff8a1a,0x1f6fe0,0xf2f2f2,0xffd400],bl=[],crowd=[];
@@ -455,6 +456,12 @@ let ac=null,osc1,osc2,gainN,filt,nGain,sound=true;
 function audioStart(){if(ac||!sound)return;try{ac=new(window.AudioContext||window.webkitAudioContext)();osc1=ac.createOscillator();osc2=ac.createOscillator();osc1.type='sawtooth';osc2.type='square';filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.value=900;gainN=ac.createGain();gainN.gain.value=0;
   osc1.connect(filt);const g2=ac.createGain();g2.gain.value=.5;osc2.connect(g2);g2.connect(filt);filt.connect(gainN);gainN.connect(ac.destination);osc1.start();osc2.start();
   const b=ac.createBuffer(1,ac.sampleRate,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const ns=ac.createBufferSource();ns.buffer=b;ns.loop=true;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1500;nGain=ac.createGain();nGain.gain.value=0;ns.connect(bp);bp.connect(nGain);nGain.connect(ac.destination);ns.start()}catch(e){ac=null}}
+// co-driver pace-note calls (audio/*.mp3, Piper TTS "Alan"); V toggles
+const NOTES=[],callDone=new Set(),CALLS={},CALLN=['easy','medium','hard','hairpin'].flatMap(n=>[n+'_left',n+'_right']).concat(['caution','jump']);let voiceOn=store.get('r90-voice')!=='0',callLoad=0;
+function loadCalls(){if(callLoad||!ac)return;callLoad=1;CALLN.forEach(n=>fetch('audio/'+n+'.mp3').then(r=>r.arrayBuffer()).then(b=>ac.decodeAudioData(b)).then(d=>{CALLS[n]=d}).catch(()=>{}))}
+function sayCall(n){if(!voiceOn||!ac||!CALLS[n])return;try{const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=1.6;s.buffer=CALLS[n];s.connect(g);g.connect(ac.destination);s.start()}catch(e){}}
+function callNotes(){if(!ac||GS.mode!=='run')return;loadCalls();const LEAD=Math.round(55/ds);for(const n of NOTES){const k=n.i-LEAD;if(!callDone.has(k)&&C.idx>=k&&C.idx<k+30){callDone.add(k);sayCall(n.c);break}}}
+addEventListener('keydown',e=>{if(e.code==='KeyV'&&GS.mode!=='initials'){voiceOn=!voiceOn;store.set('r90-voice',voiceOn?'1':'0');flash('CO-DRIVER '+(voiceOn?'ON':'OFF'),900)}});
 function beep(f,d,v){if(!ac)return;const o=ac.createOscillator(),gg=ac.createGain();o.type='square';o.frequency.value=f;gg.gain.value=v||.08;o.connect(gg);gg.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}
 // mobile audio unlock: phones only start Web Audio inside a touch, and the iOS silent switch mutes it unless a media element is playing
 const MOBILE=COARSE||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -739,7 +746,7 @@ function tick(dt){
     if(GS.mode==='run'){recT+=dt;while(recT>=.05){recT-=.05;const f=new Float32Array(FR);f[0]=rt;f[1]=C.x;f[2]=C.z;f[3]=C.H;f[4]=C.y;f[5]=C.pitch;f[6]=C.roll;f[7]=C.steer;f[8]=C.vf;AIS.forEach((a,q)=>{const j=9+q*4;f[j]=a.x;f[j+1]=a.z;f[j+2]=a.y;f[j+3]=a.H});curRec.buf.push(f)}
       if(C.air){C._at=(C._at||0)+dt}else{if(C._at>.55)GS.events.push({si:GS.stage,t:rt-C._at/2,w:3+C._at*2,type:'jump'});C._at=0}
       const sl=Math.abs(C.vr)>5.5&&Math.abs(C.vf)>14&&!C.air;if(sl){if(!C._sl)C._wallD=0;C._sl=(C._sl||0)+dt;if(C._sl>1&&!C._slg){C._slg=1;GS.events.push({si:GS.stage,t:rt,w:2.2,type:'slide'})}}else{if(C._sl>.7&&!C._wallD){const bn=Math.min(2.5,C._sl*.7);if(!GS.practice)tl+=bn;GS.drift=(GS.drift||0)+bn;flash('DRIFT<br><small>'+(GS.practice?C._sl.toFixed(1)+' s':'+'+bn.toFixed(1)+' SECONDS')+'</small>',900,'y');if(ac)beep(1000,.08)}C._sl=0;C._slg=0}}
-    note();hudUpdate();ensureChunks(C.x,C.z,2,3);
+    callNotes();note();hudUpdate();ensureChunks(C.x,C.z,2,3);
     const tf=tunnelFactor(C.idx);lightFor(tf);
     (GS.practice?[]:AIS).forEach(a=>{placeMesh(a.mesh,a.x,a.y,a.z,a.H,0,0,a.v*dt/.33,0)});poseCar(dt);
     if(ac&&gainN){const f=45+clamp(Math.abs(C.vf)/50,0,1)*180,t=ac.currentTime;osc1.frequency.setTargetAtTime(f,t,.04);osc2.frequency.setTargetAtTime(f*.5,t,.04);filt.frequency.setTargetAtTime(400+f*8*(.5+.5*C.thr),t,.05);gainN.gain.setTargetAtTime(play?.05+C.thr*.06:0,t,.1);nGain.gain.setTargetAtTime(Math.abs(C.vr)>2&&!C.air?clamp((Math.abs(C.vr)-2)/8,0,1)*.08:0,t,.05)}}
